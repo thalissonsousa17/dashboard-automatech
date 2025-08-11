@@ -27,7 +27,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
     { to: '/dashboard/publicar-post', icon: Plus, label: 'Publicar no Espaço Docente' },
     { to: '/dashboard/espaco-docente', icon: Globe, label: 'Espaço Docente' },
     { to: '/dashboard/student-submissions', icon: Upload, label: 'Trabalhos Alunos' },
-    { to: '/dashboard/ai-assistant', icon: MessageSquare, label: 'Assistente IA' },
+    //{ to: '/dashboard/ai-assistant', icon: MessageSquare, label: 'Assistente IA' },
   ];
 
   return (
