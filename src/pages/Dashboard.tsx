@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTeachingPosts } from '../hooks/useTeachingPosts';
+import { useNotes } from '../hooks/useNotes';
+import type { Note } from '../hooks/useNotes';
 import { 
   BookOpen,
-  TrendingUp,
   Calendar,
   StickyNote,
   Plus,
@@ -11,26 +12,17 @@ import {
   Trash2,
   Save,
   X,
-  User,
   Eye,
   Heart
 } from 'lucide-react';
 
-interface Note {
-  id: string;
-  title: string;
-  content: string;
-  created_at: string;
-  updated_at: string;
-}
-
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { posts, loading: postsLoading } = useTeachingPosts();
+  const { notes, loading: notesLoading, createNote, updateNote, deleteNote } = useNotes();
   const [loading, setLoading] = useState(true);
 
   // Notes state
-  const [notes, setNotes] = useState<Note[]>([]);
   const [showNoteForm, setShowNoteForm] = useState(false);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
   const [noteForm, setNoteForm] = useState({
@@ -41,48 +33,31 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     // Simular carregamento
     setTimeout(() => setLoading(false), 500);
-
-    // Carregar notas do localStorage
-    const savedNotes = localStorage.getItem('dashboardNotes');
-    if (savedNotes) {
-      try {
-        setNotes(JSON.parse(savedNotes));
-      } catch (err) {
-        console.error('Erro ao carregar notas:', err);
-      }
-    }
   }, []);
 
-  const saveNotes = (newNotes: Note[]) => {
-    localStorage.setItem('dashboardNotes', JSON.stringify(newNotes));
-    setNotes(newNotes);
-  };
-
-  const handleSaveNote = () => {
+  const handleSaveNote = async () => {
     if (!noteForm.title.trim() || !noteForm.content.trim()) return;
 
-    if (editingNote) {
-      // Editar nota existente
-      const updatedNotes = notes.map(note =>
-        note.id === editingNote.id
-          ? { ...note, ...noteForm, updated_at: new Date().toISOString() }
-          : note
-      );
-      saveNotes(updatedNotes);
-      setEditingNote(null);
-    } else {
-      // Criar nova nota
-      const newNote: Note = {
-        id: Date.now().toString(),
-        ...noteForm,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
-      saveNotes([newNote, ...notes]);
-    }
+    try {
+      if (editingNote) {
+        // Editar nota existente
+        console.log('📝 Editando nota:', editingNote.id);
+        await updateNote(editingNote.id, noteForm);
+        setEditingNote(null);
+        console.log('✅ Nota editada com sucesso');
+      } else {
+        // Criar nova nota
+        console.log('🆕 Criando nova nota:', noteForm.title);
+        await createNote(noteForm);
+        console.log('✅ Nova nota criada com sucesso');
+      }
 
-    setNoteForm({ title: '', content: '' });
-    setShowNoteForm(false);
+      setNoteForm({ title: '', content: '' });
+      setShowNoteForm(false);
+    } catch (err) {
+      console.error('❌ Erro ao salvar nota:', err);
+      // Não mostrar erro para o usuário já que temos fallback para localStorage
+    }
   };
 
   const handleEditNote = (note: Note) => {
@@ -91,14 +66,20 @@ const Dashboard: React.FC = () => {
     setShowNoteForm(true);
   };
 
-  const handleDeleteNote = (noteId: string) => {
+  const handleDeleteNote = async (noteId: string) => {
     if (window.confirm('Tem certeza que deseja excluir esta anotação?')) {
-      const updatedNotes = notes.filter(note => note.id !== noteId);
-      saveNotes(updatedNotes);
+      try {
+        console.log('🗑️ Deletando nota:', noteId);
+        await deleteNote(noteId);
+        console.log('✅ Nota excluída com sucesso');
+      } catch (err) {
+        console.error('❌ Erro ao excluir nota:', err);
+        // Não mostrar erro para o usuário já que temos fallback para localStorage
+      }
     }
   };
 
-  if (loading) {
+  if (loading || notesLoading) {
     return (
       <div className="animate-pulse space-y-6">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

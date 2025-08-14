@@ -1,8 +1,8 @@
-import React from 'react';
-import { Menu, Bell, User, Settings, LogOut, Home, BookOpen, Upload, MessageSquare } from 'lucide-react';
+// src/components/Header.tsx
+import React, { useState } from 'react';
+import { Menu, Bell, User, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { useState } from 'react';
 
 interface HeaderProps {
   onMenuToggle: () => void;
@@ -20,20 +20,29 @@ const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
 
   return (
     <header className="bg-white border-b border-gray-200 px-6 py-4 sticky top-0 z-40">
-      <div className="flex items-center justify-end">
+      <div className="flex items-center justify-between">
+        {/* Botão de menu (hambúrguer) para telas pequenas */}
+        <button
+          onClick={onMenuToggle}
+          className="lg:hidden p-2 rounded-md hover:bg-gray-100 transition-colors"
+        >
+          <Menu className="w-6 h-6 text-gray-700" />
+        </button>
         
+        {/* Adicione o logo ou título aqui para telas maiores, se desejar */}
+        <div className="hidden lg:flex items-center space-x-2">
+            <span className="font-bold text-lg text-gray-900">Dashboard</span>
+        </div>
 
-        <div className="flex items-center space-x-2">
-          {/* Navigation Links */}
-          
-          {/* Divider */} 
-          <div className="hidden md:block w-px h-6 bg-gray-300 mx-2"></div>
-         
+        <div className="flex items-center space-x-2 ml-auto">
+          {/* Botão de Notificações */}
           <button className="p-2 rounded-full hover:bg-gray-100 relative transition-colors">
             <Bell className="w-5 h-5 text-gray-600" />
-            <span className="absolute -top-1 -right-1 w-3 h-3  rounded-full"></span>
+            {/* Opcional: Adicione a bolha de notificação */}
+            {/* <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></span> */}
           </button>
           
+          {/* Menu de Perfil */}
           <div className="relative">
             <button
               onClick={() => setShowProfileMenu(!showProfileMenu)}
@@ -54,7 +63,10 @@ const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
                 </div>
                 
                 <button
-                  onClick={() => navigate('/dashboard/meu-perfil')}
+                  onClick={() => {
+                    navigate('/dashboard/meu-perfil');
+                    setShowProfileMenu(false);
+                  }}
                   className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center"
                 >
                   <User className="w-4 h-4 mr-2" />

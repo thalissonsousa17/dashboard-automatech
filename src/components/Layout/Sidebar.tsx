@@ -1,16 +1,13 @@
+// src/components/Sidebar.tsx
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { 
   LayoutDashboard, 
-  Home,
   Globe,
-  Upload,
   Plus, 
-  Settings, 
-  MessageSquare, 
   LogOut,
-  Menu,
-  X
+  X,
+  QrCodeIcon
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -26,13 +23,17 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
     { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
     { to: '/dashboard/publicar-post', icon: Plus, label: 'Publicar no Espaço Docente' },
     { to: '/dashboard/espaco-docente', icon: Globe, label: 'Espaço Docente' },
-    { to: '/dashboard/student-submissions', icon: Upload, label: 'Trabalhos Alunos' },
-    //{ to: '/dashboard/ai-assistant', icon: MessageSquare, label: 'Assistente IA' },
+    { 
+      to: '/dashboard/qr-chamada', 
+      icon: QrCodeIcon, 
+      label: 'QR Chamada', 
+      url: 'https://qrchamada.automatech.app.br/login' 
+    },
   ];
 
   return (
     <>
-      {/* Mobile Overlay */}
+      {/* Overlay transparente para dispositivos móveis */}
       {isOpen && (
         <div
           className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
@@ -46,7 +47,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
         lg:translate-x-0 lg:static lg:z-auto
       `}>
-        {/* Header */}
+        {/* Header do Sidebar */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div className="flex items-center space-x-2">
             <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center">
@@ -54,6 +55,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
             </div>
             <span className="font-bold text-gray-900">Automatech</span>
           </div>
+          {/* Botão de fechar para dispositivos móveis */}
           <button
             onClick={onToggle}
             className="lg:hidden p-1 rounded-md hover:bg-gray-100"
@@ -62,28 +64,43 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
           </button>
         </div>
 
-        {/* Navigation */}
+        {/* Navegação */}
         <nav className="flex-1 px-4 py-6 space-y-2">
           {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              onClick={() => window.innerWidth < 1024 && onToggle()}
-              className={({ isActive }) => `
-                flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
-                ${isActive 
-                  ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-600' 
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                }
-              `}
-            >
-              <item.icon className="w-5 h-5" />
-              <span>{item.label}</span>
-            </NavLink>
+            item.url ? (
+              // Link externo
+              <a
+                key={item.to}
+                href={item.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+              >
+                <item.icon className="w-5 h-5" />
+                <span>{item.label}</span>
+              </a>
+            ) : (
+              // Link interno
+              <NavLink
+                key={item.to}
+                to={item.to}
+                onClick={() => window.innerWidth < 1024 && onToggle()}
+                className={({ isActive }) => `
+                  flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
+                  ${isActive 
+                    ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-600' 
+                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                  }
+                `}
+              >
+                <item.icon className="w-5 h-5" />
+                <span>{item.label}</span>
+              </NavLink>
+            )
           ))}
         </nav>
 
-        {/* Footer */}
+        {/* Rodapé do Sidebar */}
         <div className="p-4 border-t border-gray-200">
           <button
             onClick={signOut}
