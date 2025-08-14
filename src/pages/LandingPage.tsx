@@ -1,64 +1,72 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  BookOpen, 
-  Upload, 
-  Bot, 
-  Globe, 
+import {
+  
   ArrowRight,
   Home,
   Users,
-  FileText,
-  Video,
-  Image as ImageIcon,
-  Link as LinkIcon,
-  Brain,
+  Star,
   Sparkles,
+  Zap,
   CheckCircle,
-  Star
-} from 'lucide-react';
+  Code,
+  Brain,
+  MessageCircle,
+  } from 'lucide-react';
 
-const LandingPage: React.FC = () => {
+const CombinedLandingPage: React.FC = () => {
   const navigate = useNavigate();
 
   const features = [
     {
-      icon: BookOpen,
-      title: "Espaço Docente",
-      description: "Publique conteúdos de aula com arquivos, vídeos e carrossel de imagens.",
-      color: "from-green-500 to-green-600",
-      bgColor: "bg-green-50",
-      textColor: "text-green-700",
-      route: "/espaco-docente",
-      highlights: ["Arquivos PDF, PPT, DOC", "Vídeos do YouTube/Vimeo", "Galeria de imagens", "Tags e categorias"]
-    },
-    {
-      icon: Upload,
-      title: "Trabalhos dos Alunos",
-      description: "Crie pastas e receba arquivos enviados pelos alunos via link compartilhável.",
+      icon: Code,
+      title: "Desenvolvimento de Sistemas",
+      description: "Construa sistemas personalizados para sua empresa, otimizando processos e aumentando a eficiência. Nossa equipe de especialistas transforma suas ideias em soluções robustas e escaláveis.",
       color: "from-blue-500 to-blue-600",
       bgColor: "bg-blue-50",
       textColor: "text-blue-700",
-      route: "/login",
-      highlights: ["Links compartilháveis", "Recebimento automático", "Avaliação com IA", "Controle de prazos"]
+      route: "/sistemas",
+      highlights: ["Sistema de CRM", "Gestão de estoque", "Painéis de controle", "Integrações personalizadas"]
     },
     {
-      icon: Bot,
-      title: "Assistente IA",
-      description: "Gere atividades, revise textos e tire dúvidas usando inteligência artificial.",
+      icon: Zap,
+      title: "Automação de Fluxos",
+      description: "Crie automações inteligentes para seu negócio. Desde atendimento ao cliente no WhatsApp até envio de e-mails, nossos fluxos garantem que você nunca perca uma oportunidade.",
       color: "from-purple-500 to-purple-600",
       bgColor: "bg-purple-50",
       textColor: "text-purple-700",
-      route: "/login",
-      highlights: ["Powered by ChatGPT", "Revisão de textos", "Geração de atividades", "Suporte 24/7"]
+      route: "/LandingPageDashboard",
+      highlights: ["Automação de WhatsApp", "Fluxos de e-mail marketing", "Chatbots para Instagram", "Integração com CRMs"]
+    },
+    /*
+    {
+      icon: BookOpen,
+      title: "Plataforma Educacional Automatech",
+      description: "Revolucione o ensino com ferramentas inteligentes para professores e alunos. Publique conteúdos, gerencie atividades e conte com um assistente de IA para potencializar o aprendizado.",
+      color: "from-green-500 to-green-600",
+      bgColor: "bg-green-50",
+      textColor: "text-green-700",
+      route: "/automatech",
+      highlights: ["Publicação de conteúdos", "Espaço Docente", "Chamada via QR Code"]
+    },
+    {
+      icon: Bot,
+      title: "Espaço Docente",
+      description: "Publique e organize suas aulas em um só lugar. Compartilhe materiais, vídeos e atividades com seus alunos de forma simples e rápida. Nossa plataforma conecta professores e estudantes, facilitando o acesso ao conhecimento.",
+      color: "from-yellow-500 to-yellow-600",
+      bgColor: "bg-yellow-50",
+      textColor: "text-yellow-700",
+      route: "/ia",
+      highlights: ["Upload de PDFs, apresentações e vídeos", "Organização por disciplina e nível de ensino", "Acesso fácil e rápido para os alunos", "Disponível 24 horas por dia"]
     }
+      */
   ];
 
   const stats = [
+    { number: "10+", label: "Sistemas Entregues", icon: Code },
+    { number: "50+", label: "Fluxos de Automação", icon: Zap },
     { number: "100+", label: "Professores Ativos", icon: Users },
-    { number: "500+", label: "Conteúdos Publicados", icon: FileText },
-    { number: "1000+", label: "Trabalhos Avaliados", icon: CheckCircle },
-    { number: "24/7", label: "Assistente IA", icon: Bot }
+    //{ number: "1000+", label: "Conteúdos Publicados", icon: FileText }
   ];
 
   return (
@@ -73,7 +81,7 @@ const LandingPage: React.FC = () => {
               </div>
               <div>
                 <h1 className="text-xl font-bold text-gray-900">Automatech</h1>
-                <p className="text-xs text-gray-500">Plataforma Educacional</p>
+                <p className="text-xs text-gray-500">Soluções Completas</p>
               </div>
             </div>
             <div className="flex items-center space-x-4">
@@ -88,13 +96,13 @@ const LandingPage: React.FC = () => {
                 onClick={() => window.open('/login', '_blank')}
                 className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-2 rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all font-medium"
               >
-                Entrar no Dashboard
+                Acessar Plataforma
               </button>
             </div>
           </div>
         </div>
       </header>
-
+      
       {/* Hero Section */}
       <section className="py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto text-center">
@@ -105,30 +113,29 @@ const LandingPage: React.FC = () => {
           </div>
           
           <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6">
-            Plataforma Educacional
+            {/* Sistemas, Fluxos e Educação. */}
             <span className="block text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
-              Automatech
+              Soluções que aceleram seus resultados.
             </span>
           </h1>
           
           <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto leading-relaxed">
-            Revolucione sua experiência educacional com ferramentas inteligentes para professores e alunos. 
-            Publique conteúdos, receba trabalhos e conte com IA para potencializar o aprendizado.
+            De automações inteligentes que impulsionam suas vendas a uma plataforma educacional completa, a Automatech oferece a tecnologia para você crescer.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <button
-              onClick={() => window.open('/login', '_blank')}
+              onClick={() => window.open('/contato', '_blank')}
               className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-8 py-4 rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all font-semibold text-lg flex items-center justify-center"
             >
-              Acessar Dashboard
+              Falar com um Especialista
               <ArrowRight className="w-5 h-5 ml-2" />
             </button>
             <button
               onClick={() => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' })}
               className="border-2 border-gray-300 text-gray-700 px-8 py-4 rounded-xl hover:border-gray-400 hover:bg-gray-50 transition-all font-semibold text-lg"
             >
-              Conhecer Funcionalidades
+              Conhecer Nossas Soluções
             </button>
           </div>
         </div>
@@ -137,7 +144,7 @@ const LandingPage: React.FC = () => {
       {/* Stats Section */}
       <section className="py-16 bg-white/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
             {stats.map((stat, index) => (
               <div key={index} className="text-center">
                 <div className="flex items-center justify-center mb-4">
@@ -158,14 +165,14 @@ const LandingPage: React.FC = () => {
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              🧭 Funcionalidades da Plataforma
+              ✨ Nossas Soluções Completas
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Descubra todas as ferramentas disponíveis para transformar sua experiência educacional
+              Desenvolvemos a tecnologia certa para seu negócio e sua instituição de ensino.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8">
             {features.map((feature, index) => (
               <div key={index} className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 group">
                 <div className={`h-2 bg-gradient-to-r ${feature.color}`}></div>
@@ -193,20 +200,14 @@ const LandingPage: React.FC = () => {
                     ))}
                   </div>
 
+                  <a href={feature.route} target="_blank" rel="noopener noreferrer" className="block">
                   <button
-                    onClick={() => navigate('/espaco-docente')}
                     className={`w-full ${feature.bgColor} ${feature.textColor} py-3 px-6 rounded-xl hover:shadow-md transition-all font-semibold flex items-center justify-center group-hover:scale-105`}
                   >
-                    {feature.title === 'Espaço Docente' 
-                      ? 'Ver Conteúdos Públicos' 
-                      : feature.title === 'Trabalhos dos Alunos'
-                      ? 'Acessar no Dashboard'
-                      : 'Acessar no Dashboard'
-                    }
-                    {(feature.title === 'Espaço Docente' || feature.title === 'Assistente IA') && (
-                      <ArrowRight className="w-4 h-4 ml-2" />
-                    )}
+                    Saiba Mais
+                    <ArrowRight className="w-4 h-4 ml-2" />
                   </button>
+                  </a>
                 </div>
               </div>
             ))}
@@ -224,12 +225,11 @@ const LandingPage: React.FC = () => {
           </div>
           
           <h2 className="text-4xl font-bold text-white mb-6">
-            Pronto para Revolucionar sua Educação?
+            Cresça com a Tecnologia Certa
           </h2>
           
           <p className="text-xl text-blue-100 mb-8 leading-relaxed">
-            Junte-se a centenas de educadores que já estão usando a Automatech para 
-            criar experiências de aprendizado mais eficientes e envolventes.
+            Seja para impulsionar seus resultados, automatizar processos ou modernizar o aprendizado, temos soluções inteligentes que se adaptam às suas necessidades.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -237,14 +237,14 @@ const LandingPage: React.FC = () => {
               onClick={() => window.open('/login', '_blank')}
               className="bg-white text-blue-600 px-8 py-4 rounded-xl hover:bg-gray-50 transition-all font-semibold text-lg flex items-center justify-center"
             >
-              Entrar no Dashboard
+              Agende uma Demonstração
               <Star className="w-5 h-5 ml-2" />
             </button>
             <button
-              onClick={() => navigate('/espaco-docente')}
+              onClick={() => window.open('https://wa.me/5583986844693', '_blank')}
               className="border-2 border-white/30 text-white px-8 py-4 rounded-xl hover:border-white/50 hover:bg-white/10 transition-all font-semibold text-lg"
             >
-              Ver Conteúdos Públicos
+              Fale Conosco
             </button>
           </div>
         </div>
@@ -261,22 +261,21 @@ const LandingPage: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="text-xl font-bold">Automatech</h3>
-                  <p className="text-gray-400 text-sm">Plataforma Educacional</p>
+                  <p className="text-gray-400 text-sm">Soluções Completas</p>
                 </div>
               </div>
               <p className="text-gray-400 leading-relaxed">
-                Transformando a educação através da tecnologia e inteligência artificial. 
-                Criamos ferramentas que potencializam o ensino e facilitam o aprendizado.
+                Transformando negócios e educação através de sistemas, automações e inteligência artificial.
               </p>
             </div>
 
             <div>
-              <h4 className="text-lg font-semibold mb-4">Funcionalidades</h4>
+              <h4 className="text-lg font-semibold mb-4">Nossas Soluções</h4>
               <ul className="space-y-2 text-gray-400">
-                <li>📚 Espaço Docente</li>
-                <li>📤 Trabalhos dos Alunos</li>
-                <li>🤖 Assistente IA</li>
-                <li>🌐 Acesso Público</li>
+                <li>Sistemas Personalizados</li>
+                <li>Automações de Fluxos</li>
+                <li>Plataforma Educacional</li>
+                <li>Assistente de IA</li>
               </ul>
             </div>
 
@@ -296,8 +295,23 @@ const LandingPage: React.FC = () => {
           </div>
         </div>
       </footer>
+
+      {/* Botão flutuante do WhatsApp */}
+      <a 
+        href="https://wa.me/5583986844693" 
+        className="fixed bottom-6 right-6 p-4 bg-green-500 text-white rounded-full shadow-lg hover:bg-green-600 transition-colors z-50"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        <MessageCircle className="w-6 h-6" /> {/* Usei MessageCircle, que é mais genérico e comum para chat */}
+      </a>
     </div>
+
+
   );
 };
 
-export default LandingPage;
+
+
+
+export default CombinedLandingPage;

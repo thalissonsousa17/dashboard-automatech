@@ -1,3 +1,4 @@
+// src/components/Layout.tsx
 import React, { useState } from 'react';
 import Sidebar from './Sidebar';
 import Header from './Header';
@@ -17,7 +18,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     <div className="flex h-screen bg-gray-50">
       <Sidebar isOpen={sidebarOpen} onToggle={toggleSidebar} />
       
-      <div className="flex-1 flex flex-col overflow-hidden lg:ml-0">
+      {/* Conteúdo principal */}
+      <div className="flex-1 flex flex-col lg:ml-64">
         <Header onMenuToggle={toggleSidebar} />
         
         <main className="flex-1 overflow-y-auto p-6">

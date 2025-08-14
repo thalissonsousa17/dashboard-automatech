@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../integrations/supabase/client';
 import { openAIService } from '../lib/openai';
 import { SubmissionFolder, StudentSubmission } from '../types';
 
@@ -78,7 +78,6 @@ export const useStudentSubmissions = () => {
   const [folders, setFolders] = useState<SubmissionFolder[]>([]);
   const [submissions, setSubmissions] = useState<StudentSubmission[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   // Salvar pastas no localStorage
   const saveFolders = (newFolders: SubmissionFolder[]) => {
@@ -99,18 +98,12 @@ export const useStudentSubmissions = () => {
   const fetchData = async () => {
     console.log('🔄 CARREGANDO DADOS...');
     
-    if (!supabase || !import.meta.env.VITE_SUPABASE_URL) {
-      loadFromLocalStorage();
-      setLoading(false);
-      console.log('✅ CARREGAMENTO CONCLUÍDO');
-      return;
-    }
-
     try {
       setLoading(true);
+
       
       // Buscar pastas
-      const { data: foldersData, error: foldersError } = await supabase
+      const { data: foldersData, error: foldersError } = await supabase!
         .from('submission_folders')
         .select('*')
         .order('created_at', { ascending: false });
@@ -118,17 +111,48 @@ export const useStudentSubmissions = () => {
       if (foldersError) throw foldersError;
 
       // Buscar submissões
-      const { data: submissionsData, error: submissionsError } = await supabase
+      const { data: submissionsData, error: submissionsError } = await supabase!
         .from('student_submissions')
         .select('*')
         .order('submitted_at', { ascending: false });
 
       if (submissionsError) throw submissionsError;
 
-      setFolders(foldersData || []);
-      setSubmissions(submissionsData || []);
+      // Tratar campos nullable do Supabase
+      const processedFolders: SubmissionFolder[] = (foldersData || []).map(folder => ({
+        id: folder.id,
+        name: folder.name,
+        class_name: folder.class_name,
+        assignment_theme: folder.assignment_theme,
+        due_date: folder.due_date,
+        share_link: folder.share_link,
+        is_active: folder.is_active ?? true,
+        created_by: folder.created_by || '',
+        created_at: folder.created_at || new Date().toISOString(),
+        submissions_count: folder.submissions_count ?? 0
+      }));
+
+      // Tratar campos nullable do Supabase para submissions
+      const processedSubmissions: StudentSubmission[] = (submissionsData || []).map(submission => ({
+        id: submission.id,
+        folder_id: submission.folder_id,
+        student_registration: submission.student_registration,
+        student_name: submission.student_name,
+        student_email: submission.student_email,
+        file_name: submission.file_name,
+        file_url: submission.file_url || '',
+        file_size: submission.file_size,
+        submitted_at: submission.submitted_at,
+        ai_evaluation: submission.ai_evaluation as any
+      }));
+
+      setFolders(processedFolders);
+      setSubmissions(processedSubmissions);
+      console.log('✅ Dados carregados do Supabase:', foldersData?.length || 0, 'pastas');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao carregar dados');
+      console.error('❌ Erro ao carregar do Supabase:', err);
+      // Fallback para localStorage se Supabase falhar
+      loadFromLocalStorage();
     } finally {
       setLoading(false);
     }
@@ -176,92 +200,55 @@ export const useStudentSubmissions = () => {
 
   const createFolder = async (folderData: Omit<SubmissionFolder, 'id' | 'share_link' | 'is_active' | 'created_by' | 'created_at' | 'submissions_count'>) => {
     try {
-      const shareId = Math.random().toString(36).substring(2, 15);
-      console.log('🆕 Criando pasta com share_link:', shareId);
-      
-      if (!supabase || !import.meta.env.VITE_SUPABASE_URL) {
-        // Simular criação em modo mock
-        const newFolder: SubmissionFolder = {
-          ...folderData,
-          id: Date.now().toString(),
-          share_link: shareId,
-          is_active: new Date(folderData.due_date) > new Date(),
-          created_by: 'user1',
-          created_at: new Date().toISOString(),
-          submissions_count: 0
-        };
-        console.log('✅ Nova pasta criada:', newFolder.name, 'ID:', newFolder.id);
-        const updatedFolders = [newFolder, ...folders];
-        saveFolders(updatedFolders);
-        
-        // Salvar também em dados globais para acesso universal
-        try {
-          sessionStorage.setItem('submissionFolders', JSON.stringify(updatedFolders));
-          (window as any).automatechData = {
-            folders: updatedFolders,
-            lastUpdated: new Date().toISOString()
-          };
-          console.log('✅ Dados globais atualizados para acesso universal');
-        } catch (err) {
-          console.error('❌ Erro ao salvar dados globais:', err);
-        }
-        
-        return newFolder;
-      }
+      console.log('🆕 Criando nova pasta no Supabase:', folderData.name);
 
-      const { data, error } = await supabase
+      // Usar any para contornar incompatibilidades de tipo do Supabase
+      const { data, error } = await supabase!
         .from('submission_folders')
-        .insert([{
-          ...folderData,
-          share_link: shareId,
-          is_active: new Date(folderData.due_date) > new Date()
-        }])
+        .insert({
+          name: folderData.name,
+          class_name: folderData.class_name,
+          assignment_theme: folderData.assignment_theme,
+          due_date: folderData.due_date
+        } as any)
         .select()
         .single();
 
       if (error) throw error;
-      const updatedFolders = [data, ...folders];
-      saveFolders(updatedFolders);
-      return data;
-    } catch (err) {
-      console.error('Erro ao criar pasta:', err);
-      // Simular criação em modo mock
-      const shareId = Math.random().toString(36).substr(2, 9);
-      const newFolder: SubmissionFolder = {
-        ...folderData,
-        id: Date.now().toString(),
-        share_link: shareId,
-        is_active: new Date(folderData.due_date) > new Date(),
-        created_by: 'user1',
-        created_at: new Date().toISOString(),
-        submissions_count: 0
+      
+      // Processar dados do Supabase para corresponder ao tipo SubmissionFolder
+      const processedData: SubmissionFolder = {
+        id: data.id,
+        name: data.name,
+        class_name: data.class_name,
+        assignment_theme: data.assignment_theme,
+        due_date: data.due_date,
+        share_link: data.share_link,
+        is_active: data.is_active ?? true,
+        created_by: data.created_by || '',
+        created_at: data.created_at || new Date().toISOString(),
+        submissions_count: data.submissions_count ?? 0
       };
-      const updatedFolders = [newFolder, ...folders];
+      
+      console.log('✅ Pasta criada no Supabase:', processedData.name, 'ID:', processedData.id, 'Share Link:', processedData.share_link);
+      const updatedFolders = [processedData, ...folders];
+      setFolders(updatedFolders);
+      
+      // Também salvar no localStorage como backup
       saveFolders(updatedFolders);
-      return newFolder;
+      
+      return processedData;
+    } catch (err) {
+      console.error('❌ Erro ao criar pasta no Supabase:', err);
+      throw new Error(err instanceof Error ? err.message : 'Erro ao criar pasta');
     }
   };
 
   const deleteFolder = async (folderId: string) => {
     try {
-      console.log('🗑️ DELETANDO PASTA:', folderId);
-      
-      if (!supabase || !import.meta.env.VITE_SUPABASE_URL) {
-        // Simular exclusão em modo mock
-        const updatedFolders = folders.filter(folder => folder.id !== folderId);
-        const updatedSubmissions = submissions.filter(submission => submission.folder_id !== folderId);
-        
-        console.log('✅ Exclusão concluída - Pastas restantes:', updatedFolders.length);
-        
-        saveFolders(updatedFolders);
-        saveSubmissions(updatedSubmissions);
-        
-        // Mostrar confirmação de exclusão
-        console.log('🗑️ Pasta excluída permanentemente');
-        return;
-      }
+      console.log('🗑️ Deletando pasta do Supabase:', folderId);
 
-      const { error } = await supabase
+      const { error } = await supabase!
         .from('submission_folders')
         .delete()
         .eq('id', folderId);
@@ -270,18 +257,17 @@ export const useStudentSubmissions = () => {
       
       const updatedFolders = folders.filter(folder => folder.id !== folderId);
       const updatedSubmissions = submissions.filter(submission => submission.folder_id !== folderId);
+      setFolders(updatedFolders);
+      setSubmissions(updatedSubmissions);
+      
+      // Também atualizar localStorage
       saveFolders(updatedFolders);
       saveSubmissions(updatedSubmissions);
       
-      console.log('✅ Pasta excluída do Supabase e localStorage');
+      console.log('✅ Pasta excluída do Supabase com sucesso');
     } catch (err) {
-      console.error('Erro ao excluir pasta:', err);
-      // Simular exclusão em modo mock mesmo com erro
-      const updatedFolders = folders.filter(folder => folder.id !== folderId);
-      const updatedSubmissions = submissions.filter(submission => submission.folder_id !== folderId);
-      saveFolders(updatedFolders);
-      saveSubmissions(updatedSubmissions);
-      throw err; // Re-throw para mostrar erro na UI
+      console.error('❌ Erro ao excluir pasta:', err);
+      throw new Error(err instanceof Error ? err.message : 'Erro ao excluir pasta');
     }
   };
 
@@ -309,12 +295,19 @@ export const useStudentSubmissions = () => {
           : s
       ));
 
-      if (supabase && import.meta.env.VITE_SUPABASE_URL) {
-        await supabase
-          .from('student_submissions')
-          .update({ ai_evaluation: evaluation })
-          .eq('id', submissionId);
-      }
+      // Atualizar no Supabase
+      const updatedSubmissions = submissions.map(s => 
+        s.id === submissionId 
+          ? { ...s, ai_evaluation: evaluation }
+          : s
+      );
+      setSubmissions(updatedSubmissions);
+      saveSubmissions(updatedSubmissions);
+
+      await supabase!
+        .from('student_submissions')
+        .update({ ai_evaluation: evaluation })
+        .eq('id', submissionId);
 
       return evaluation;
     } catch (err) {
@@ -322,11 +315,6 @@ export const useStudentSubmissions = () => {
     }
   };
 
-  // Helper function to check if a string is a valid UUID
-  const isValidUUID = (str: string) => {
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    return uuidRegex.test(str);
-  };
 
   useEffect(() => {
     fetchData();
@@ -377,7 +365,6 @@ export const useStudentSubmissions = () => {
     folders,
     submissions,
     loading,
-    error,
     createFolder,
     deleteFolder,
     evaluateSubmission,
