@@ -43,16 +43,14 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
 
       {/* Sidebar */}
       <div className={`
-        fixed top-0 left-0 h-full w-64 bg-white border-r border-gray-200 z-50 transform transition-transform duration-300 ease-in-out
+        fixed top-0 left-0 h-full w-64 bg-white border-r border-gray-300 z-50 transform transition-transform duration-300 ease-in-out
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
         lg:translate-x-0 lg:static lg:z-auto
       `}>
         {/* Header do Sidebar */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">A</span>
-            </div>
+        <div className="flex items-center justify-between  border-b border-gray-200">
+          <div className="flex items-center space-x-2">          
+            <img className= "rounded-full w-20 h-20 p-5 z-40" src="/public/automatech-logo.png" alt="image description"></img>
             <span className="font-bold text-gray-900">Automatech</span>
           </div>
           {/* Botão de fechar para dispositivos móveis */}

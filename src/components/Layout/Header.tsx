@@ -19,7 +19,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
   };
 
   return (
-    <header className="bg-white border-b border-gray-200 px-6 py-4 sticky top-0 z-40">
+    <header className="bg-white border-b border-gray-200 p-5 sticky top-0 z-40">
       <div className="flex items-center justify-between">
         {/* Botão de menu (hambúrguer) para telas pequenas */}
         <button
@@ -30,9 +30,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
         </button>
         
         {/* Adicione o logo ou título aqui para telas maiores, se desejar */}
-        <div className="hidden lg:flex items-center space-x-2">
-            <span className="font-bold text-lg text-gray-900">Dashboard</span>
-        </div>
+        
 
         <div className="flex items-center space-x-2 ml-auto">
           {/* Botão de Notificações */}
