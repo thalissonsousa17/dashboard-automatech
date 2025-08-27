@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect } from "react";
 import {
   ArrowRight,
   CheckCircle,
@@ -11,36 +11,46 @@ import {
   Play,
   Clock,
   Zap,
-  Award
-} from 'lucide-react';
+  Award,
+} from "lucide-react";
 
 const AutomatechLandingPage: React.FC = () => {
   const benefits = [
     {
       icon: QrCode,
       title: "QR Chamada Automática",
-      description: "Seus alunos fazem a chamada escaneando um QR Code. Sem perda de tempo, sem papel, tudo digital e automático."
+      description:
+        "Seus alunos fazem a chamada escaneando um QR Code. Sem perda de tempo, sem papel, tudo digital e automático.",
+      available: true,
     },
     {
       icon: FileText,
       title: "Materiais Organizados",
-      description: "Centralize PDFs, vídeos, apresentações e atividades em um só lugar. Seus alunos acessam tudo facilmente."
+      description:
+        "Centralize PDFs, vídeos, apresentações e atividades em um só lugar. Seus alunos acessam tudo facilmente.",
+      available: true,
     },
     {
       icon: Zap,
       title: "Correção Automatizada",
-      description: "Sistema inteligente que ajuda na correção de trabalhos e fornece feedback personalizado para cada aluno."
+      description:
+        "Sistema inteligente que ajuda na correção de trabalhos e fornece feedback personalizado para cada aluno.",
+      available: false,
     },
     {
       icon: Users,
       title: "Gestão de Turmas",
-      description: "Organize suas disciplinas, acompanhe o progresso dos alunos e tenha relatórios completos de desempenho."
+      description:
+        "Organize suas disciplinas, acompanhe o progresso dos alunos e tenha relatórios completos de desempenho.",
+      available: true,
     },
     {
       icon: Clock,
       title: "Economia de Tempo",
-      description: "Automatize tarefas repetitivas e foque no que realmente importa: ensinar e inspirar seus alunos."
-    }
+      description:
+        "Automatize tarefas repetitivas e foque no que realmente importa: ensinar e inspirar seus alunos.",
+      available: true,
+    },
   ];
 
   const testimonials = [
@@ -48,22 +58,22 @@ const AutomatechLandingPage: React.FC = () => {
       name: "Prof. Morganna Pollynne",
       subject: "Ensino Superior",
       text: "A Automatech revolucionou minhas aulas! O QR Code para chamada economiza 20 minutos por aula, e meus alunos adoram acessar os materiais pelo celular.",
-      rating: 5
+      rating: 5,
     },
     {
       name: "Prof. Arthur Felipe",
       subject: "Ensino Superior",
       text: "Nunca foi tão fácil organizar conteúdos e acompanhar o progresso dos alunos. A plataforma é intuitiva e meus alunos estão mais engajados.",
-      rating: 5
-    }
+      rating: 5,
+    },
   ];
 
   useEffect(() => {
-    const yearElement = document.getElementById('current-year');
-  const currentYear = new Date().getFullYear();
-  if (yearElement) {
-    yearElement.textContent = currentYear.toString();
-  }
+    const yearElement = document.getElementById("current-year");
+    const currentYear = new Date().getFullYear();
+    if (yearElement) {
+      yearElement.textContent = currentYear.toString();
+    }
   }, []);
 
   return (
@@ -83,13 +93,17 @@ const AutomatechLandingPage: React.FC = () => {
             </div>
             <div className="flex items-center space-x-3">
               <button
-                onClick={() => window.open('/login', '_self')}
+                onClick={() => window.open("/login", "_self")}
                 className="border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition-all font-medium"
               >
                 Acessar Dashboard
               </button>
               <button
-                onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })}
+                onClick={() =>
+                  document
+                    .getElementById("pricing")
+                    ?.scrollIntoView({ behavior: "smooth" })
+                }
                 className="bg-gradient-to-br from-blue-600 to-green-700 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-all font-medium"
               >
                 Quero Assinar
@@ -105,26 +119,35 @@ const AutomatechLandingPage: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
               <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6 leading-tight">
-                Organize suas aulas e 
+                Organize suas aulas e
                 <span className="block text-green-600">engaje seus alunos</span>
                 com a Automatech
               </h1>
-              
+
               <p className="text-xl text-gray-600 mb-8 leading-relaxed">
-                Plataforma prática com QR Chamada, materiais digitais organizados e automação da correção de trabalhos. 
-                Economize tempo e torne suas aulas mais dinâmicas.
+                Plataforma prática com QR Chamada, materiais digitais
+                organizados e automação da correção de trabalhos. Economize
+                tempo e torne suas aulas mais dinâmicas.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-4 mb-8">
                 <button
-                  onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })}
+                  onClick={() =>
+                    document
+                      .getElementById("pricing")
+                      ?.scrollIntoView({ behavior: "smooth" })
+                  }
                   className="bg-blue-600 text-white px-8 py-4 rounded-xl hover:bg-green-700 transition-all font-semibold text-lg flex items-center justify-center shadow-lg"
                 >
                   Quero Assinar Agora
                   <ArrowRight className="w-5 h-5 ml-2" />
                 </button>
                 <button
-                  onClick={() => document.getElementById('demo')?.scrollIntoView({ behavior: 'smooth' })}
+                  onClick={() =>
+                    document
+                      .getElementById("demo")
+                      ?.scrollIntoView({ behavior: "smooth" })
+                  }
                   className="border-2 border-blue-600 text-green-600 px-8 py-4 rounded-xl hover:bg-green-50 transition-all font-semibold text-lg flex items-center justify-center"
                 >
                   <Play className="w-5 h-5 mr-2" />
@@ -150,14 +173,14 @@ const AutomatechLandingPage: React.FC = () => {
 
             <div className="relative">
               <div className="bg-white rounded-2xl shadow-2xl p-8 border border-gray-200">
-                <img 
-                  src="/assets/1.png" 
-                  alt="Dashboard da Automatech" 
+                <img
+                  src="/assets/1.png"
+                  alt="Dashboard da Automatech"
                   className="w-full rounded-lg shadow-lg"
                 />
-                <div className="absolute -top-4 -right-4 bg-gradient-to-br from-blue-600 to-green-700 text-white px-4 py-2 rounded-full font-semibold text-sm">
+                {/* <div className="absolute -top-4 -right-4 bg-gradient-to-br from-blue-600 to-green-700 text-white px-4 py-2 rounded-full font-semibold text-sm">
                   ✨ Novo!
-                </div>
+                </div> */}
               </div>
             </div>
           </div>
@@ -172,18 +195,34 @@ const AutomatechLandingPage: React.FC = () => {
               Por que professores escolhem a Automatech?
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Desenvolvida especialmente para educadores que querem modernizar suas aulas e otimizar seu tempo.
+              Desenvolvida especialmente para educadores que querem modernizar
+              suas aulas e otimizar seu tempo.
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {benefits.map((benefit, index) => (
-              <div key={index} className="bg-gray-50 rounded-2xl p-8 hover:shadow-lg transition-all duration-300">
-                <div className="w-14 h-14 bg-green-100 rounded-2xl flex items-center justify-center mb-6">
-                  <benefit.icon className="w-7 h-7 text-green-600" />
+              <div className="relative">
+                {!benefit.available && (
+                  <div className="absolute -top-4 -right-4 bg-gradient-to-br from-blue-600 to-green-700 text-white px-4 py-2 rounded-full font-semibold text-sm">
+                    🚀 Em breve!
+                  </div>
+                )}
+                <div
+                  key={index}
+                  className="bg-gray-50 rounded-2xl p-8 hover:shadow-lg transition-all duration-300"
+                >
+                  <div className="w-14 h-14 bg-green-100 rounded-2xl flex items-center justify-center mb-6">
+                    <benefit.icon className="w-7 h-7 text-green-600" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900 mb-4">
+                    {benefit.title}
+                  </h3>
+
+                  <p className="text-gray-600 leading-relaxed">
+                    {benefit.description}
+                  </p>
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-4">{benefit.title}</h3>
-                <p className="text-gray-600 leading-relaxed">{benefit.description}</p>
               </div>
             ))}
           </div>
@@ -205,9 +244,9 @@ const AutomatechLandingPage: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div>
               <div className="bg-white rounded-2xl shadow-xl p-4">
-                <img 
-                  src="/assets/2.png" 
-                  alt="QR Code para chamada" 
+                <img
+                  src="/assets/2.png"
+                  alt="QR Code para chamada"
                   className="w-full rounded-lg"
                 />
               </div>
@@ -217,7 +256,7 @@ const AutomatechLandingPage: React.FC = () => {
                 QR Chamada: Rápido e Prático
               </h3>
               <p className="text-lg text-gray-600 mb-6">
-                Seus alunos fazem a chamada em segundos escaneando o QR Code. 
+                Seus alunos fazem a chamada em segundos escaneando o QR Code.
                 Você economiza tempo e tem controle total da frequência.
               </p>
               <ul className="space-y-3">
@@ -243,8 +282,8 @@ const AutomatechLandingPage: React.FC = () => {
                 Organize todos os seus materiais
               </h3>
               <p className="text-lg text-gray-600 mb-6">
-                Centralize PDFs, vídeos, apresentações e atividades. 
-                Seus alunos acessam tudo de forma organizada e intuitiva.
+                Centralize PDFs, vídeos, apresentações e atividades. Seus alunos
+                acessam tudo de forma organizada e intuitiva.
               </p>
               <ul className="space-y-3">
                 <li className="flex items-center">
@@ -263,9 +302,9 @@ const AutomatechLandingPage: React.FC = () => {
             </div>
             <div className="order-1 lg:order-2">
               <div className="bg-white rounded-2xl shadow-xl p-4">
-                <img 
-                  src="/assets/3.png" 
-                  alt="Organização de materiais" 
+                <img
+                  src="/assets/3.png"
+                  alt="Organização de materiais"
                   className="w-full rounded-lg"
                 />
               </div>
@@ -291,7 +330,10 @@ const AutomatechLandingPage: React.FC = () => {
               <div key={index} className="bg-gray-50 rounded-2xl p-8">
                 <div className="flex items-center mb-4">
                   {[...Array(testimonial.rating)].map((_, i) => (
-                    <Star key={i} className="w-5 h-5 text-yellow-400 fill-current" />
+                    <Star
+                      key={i}
+                      className="w-5 h-5 text-yellow-400 fill-current"
+                    />
                   ))}
                 </div>
                 <p className="text-gray-700 text-lg mb-6 italic">
@@ -302,8 +344,12 @@ const AutomatechLandingPage: React.FC = () => {
                     <Award className="w-6 h-6 text-green-600" />
                   </div>
                   <div>
-                    <h4 className="font-semibold text-gray-900">{testimonial.name}</h4>
-                    <p className="text-gray-600 text-sm">{testimonial.subject}</p>
+                    <h4 className="font-semibold text-gray-900">
+                      {testimonial.name}
+                    </h4>
+                    <p className="text-gray-600 text-sm">
+                      {testimonial.subject}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -313,12 +359,15 @@ const AutomatechLandingPage: React.FC = () => {
       </section>
 
       {/* Pricing Section */}
-      <section id="pricing" className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-blue-600 to-green-700">
+      <section
+        id="pricing"
+        className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-blue-600 to-green-700"
+      >
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-4xl font-bold text-white mb-6">
             Comece hoje mesmo por apenas
           </h2>
-          
+
           <div className="bg-white rounded-3xl p-12 shadow-2xl mb-8">
             <div className="text-center mb-8">
               <div className="text-6xl font-bold text-gray-900 mb-2">
@@ -343,6 +392,7 @@ const AutomatechLandingPage: React.FC = () => {
                 <CheckCircle className="w-5 h-5 text-green-600 mr-3" />
                 <span>Gestão completa de turmas</span>
               </div>
+
               <div className="flex items-center">
                 <CheckCircle className="w-5 h-5 text-green-600 mr-3" />
                 <span>Correção automatizada</span>
@@ -358,7 +408,12 @@ const AutomatechLandingPage: React.FC = () => {
             </div>
 
             <button
-              onClick={() => window.open('https://wa.me/5583986844693?text=Olá! Quero assinar a Automatech por R$ 50/mês', '_blank')}
+              onClick={() =>
+                window.open(
+                  "https://wa.me/5583986844693?text=Olá! Quero assinar a Automatech por R$ 50/mês",
+                  "_blank"
+                )
+              }
               className="w-full bg-green-600 text-white py-4 px-8 rounded-xl hover:bg-gradient-to-br from-blue-600 to-green-700 transition-all font-bold text-xl shadow-lg"
             >
               Quero Assinar Agora
@@ -386,12 +441,14 @@ const AutomatechLandingPage: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="text-xl font-bold">Automatech</h3>
-                  <p className="text-gray-400 text-sm">Plataforma Educacional</p>
+                  <p className="text-gray-400 text-sm">
+                    Plataforma Educacional
+                  </p>
                 </div>
               </div>
               <p className="text-gray-400 leading-relaxed">
-                Transformando a educação através da tecnologia. 
-                Ajudamos professores a economizar tempo e engajar mais seus alunos.
+                Transformando a educação através da tecnologia. Ajudamos
+                professores a economizar tempo e engajar mais seus alunos.
               </p>
             </div>
 
@@ -410,21 +467,24 @@ const AutomatechLandingPage: React.FC = () => {
               <ul className="space-y-2 text-gray-400">
                 <li>Central de Ajuda</li>
                 <li>WhatsApp: (83) 98684-4693</li>
-                <li>Email: suporte@automatech.com</li>
+                <li>Email: suporte@automatech.app.br</li>
                 <li>Horário: 8h às 18h</li>
               </ul>
             </div>
           </div>
 
           <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy;<span id='current-year'></span> Automatech. Todos os direitos reservados.</p>
+            <p>
+              &copy;<span id="current-year"></span> Automatech. Todos os
+              direitos reservados.
+            </p>
           </div>
         </div>
       </footer>
 
       {/* WhatsApp Float Button */}
-      <a 
-        href="https://wa.me/5583986844693?text=Olá! Tenho interesse na plataforma Automatech" 
+      <a
+        href="https://wa.me/5583986844693?text=Olá! Tenho interesse na plataforma Automatech"
         className="fixed bottom-6 right-6 p-4 bg-green-500 text-white rounded-full shadow-lg hover:bg-green-600 transition-colors z-50 animate-pulse"
         target="_blank"
         rel="noopener noreferrer"

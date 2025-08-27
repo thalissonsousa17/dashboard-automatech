@@ -1,17 +1,16 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { openAIService } from '../lib/openai';
-import { ChatMessage } from '../types';
-import { Send, Bot, User, MessageSquare, Sparkles, Brain } from 'lucide-react';
-
+import React, { useState, useRef, useEffect } from "react";
+import { openAIService } from "../lib/openai";
+import { ChatMessage } from "../types";
+import { Send, Bot, User, Sparkles, Brain } from "lucide-react";
 
 const AIAssistant: React.FC = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [inputMessage, setInputMessage] = useState('');
+  const [inputMessage, setInputMessage] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
   useEffect(() => {
@@ -24,49 +23,50 @@ const AIAssistant: React.FC = () => {
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
       content: inputMessage,
-      sender: 'user',
-      timestamp: new Date()
+      sender: "user",
+      timestamp: new Date(),
     };
 
-    setMessages(prev => [...prev, userMessage]);
-    setInputMessage('');
+    setMessages((prev) => [...prev, userMessage]);
+    setInputMessage("");
     setIsTyping(true);
 
     try {
-      const conversationHistory = messages.map(msg => ({
-        role: msg.sender === 'user' ? 'user' : 'assistant',
-        content: msg.content
+      const conversationHistory = messages.map((msg) => ({
+        role: msg.sender === "user" ? "user" : "assistant",
+        content: msg.content,
       }));
-      
-      conversationHistory.push({ role: 'user', content: inputMessage });
-      
+
+      conversationHistory.push({ role: "user", content: inputMessage });
+
       const response = await openAIService.chatCompletion(conversationHistory);
-      
+
       const botMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         content: response,
-        sender: 'bot',
-        timestamp: new Date()
+        sender: "bot",
+        timestamp: new Date(),
       };
 
-      setMessages(prev => [...prev, botMessage]);
+      setMessages((prev) => [...prev, botMessage]);
     } catch (error) {
-      console.error('Erro no chat:', error);
+      console.error("Erro no chat:", error);
       const errorMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
-        content: 'Desculpe, ocorreu um erro ao processar sua mensagem. Tente novamente.',
-        sender: 'bot',
-        timestamp: new Date()
+        content:
+          "Desculpe, ocorreu um erro ao processar sua mensagem. Tente novamente.",
+        sender: "bot",
+        timestamp: new Date(),
       };
 
-      setMessages(prev => [...prev, errorMessage]);
+      setMessages((prev) => [...prev, errorMessage]);
     } finally {
       setIsTyping(false);
     }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
     }
@@ -85,9 +85,12 @@ const AIAssistant: React.FC = () => {
             <Brain className="w-8 h-8 text-white" />
           </div>
         </div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Meu Assistente Automatech IA</h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          Meu Assistente Automatech IA
+        </h1>
         <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-          Converse com seu assistente inteligente powered by ChatGPT para análise de textos, suporte e muito mais
+          Converse com seu assistente inteligente para análise de textos,
+          suporte e muito mais
         </p>
       </div>
 
@@ -101,7 +104,9 @@ const AIAssistant: React.FC = () => {
             </div>
             <div>
               <h3 className="font-semibold">Assistente Automatech IA</h3>
-              <p className="text-sm text-blue-100">Powered by ChatGPT • Online</p>
+              <p className="text-sm text-blue-100">
+                Powered by Automatech IA • Online
+              </p>
             </div>
           </div>
           <div className="flex items-center space-x-2">
@@ -120,38 +125,61 @@ const AIAssistant: React.FC = () => {
           {messages.length === 0 && (
             <div className="text-center py-16">
               <Bot className="w-20 h-20 text-gray-300 mx-auto mb-6" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-3">Como posso ajudá-lo hoje?</h3>
+              <h3 className="text-xl font-semibold text-gray-900 mb-3">
+                Como posso ajudá-lo hoje?
+              </h3>
               <p className="text-gray-500 mb-6 max-w-md mx-auto">
-                Sou seu assistente IA especializado em automação, análise de textos e suporte técnico
+                Sou seu assistente IA especializado em automação, análise de
+                textos e suporte técnico
               </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-2xl mx-auto">
                 <button
-                  onClick={() => setInputMessage('Analise este texto para mim')}
+                  onClick={() => setInputMessage("Analise este texto para mim")}
                   className="p-4 bg-blue-50 hover:bg-blue-100 rounded-xl text-left transition-colors"
                 >
-                  <div className="font-medium text-blue-900">Análise de Texto</div>
-                  <div className="text-sm text-blue-700">Verificar coerência e sugerir melhorias</div>
+                  <div className="font-medium text-blue-900">
+                    Análise de Texto
+                  </div>
+                  <div className="text-sm text-blue-700">
+                    Verificar coerência e sugerir melhorias
+                  </div>
                 </button>
                 <button
-                  onClick={() => setInputMessage('Como posso automatizar processos?')}
+                  onClick={() =>
+                    setInputMessage("Como posso automatizar processos?")
+                  }
                   className="p-4 bg-green-50 hover:bg-green-100 rounded-xl text-left transition-colors"
                 >
                   <div className="font-medium text-green-900">Automação</div>
-                  <div className="text-sm text-green-700">Dicas sobre automação de processos</div>
+                  <div className="text-sm text-green-700">
+                    Dicas sobre automação de processos
+                  </div>
                 </button>
                 <button
-                  onClick={() => setInputMessage('Preciso de ajuda com um projeto')}
+                  onClick={() =>
+                    setInputMessage("Preciso de ajuda com um projeto")
+                  }
                   className="p-4 bg-purple-50 hover:bg-purple-100 rounded-xl text-left transition-colors"
                 >
-                  <div className="font-medium text-purple-900">Suporte Técnico</div>
-                  <div className="text-sm text-purple-700">Ajuda com projetos e desenvolvimento</div>
+                  <div className="font-medium text-purple-900">
+                    Suporte Técnico
+                  </div>
+                  <div className="text-sm text-purple-700">
+                    Ajuda com projetos e desenvolvimento
+                  </div>
                 </button>
                 <button
-                  onClick={() => setInputMessage('Revise este conteúdo acadêmico')}
+                  onClick={() =>
+                    setInputMessage("Revise este conteúdo acadêmico")
+                  }
                   className="p-4 bg-orange-50 hover:bg-orange-100 rounded-xl text-left transition-colors"
                 >
-                  <div className="font-medium text-orange-900">Revisão Acadêmica</div>
-                  <div className="text-sm text-orange-700">Correção e feedback de trabalhos</div>
+                  <div className="font-medium text-orange-900">
+                    Revisão Acadêmica
+                  </div>
+                  <div className="text-sm text-orange-700">
+                    Correção e feedback de trabalhos
+                  </div>
                 </button>
               </div>
             </div>
@@ -160,28 +188,38 @@ const AIAssistant: React.FC = () => {
           {messages.map((message) => (
             <div
               key={message.id}
-              className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+              className={`flex ${
+                message.sender === "user" ? "justify-end" : "justify-start"
+              }`}
             >
-              <div className={`max-w-xs lg:max-w-2xl px-4 py-3 rounded-2xl ${
-                message.sender === 'user'
-                  ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white'
-                  : 'bg-gray-100 text-gray-900'
-              }`}>
+              <div
+                className={`max-w-xs lg:max-w-2xl px-4 py-3 rounded-2xl ${
+                  message.sender === "user"
+                    ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white"
+                    : "bg-gray-100 text-gray-900"
+                }`}
+              >
                 <div className="flex items-start space-x-3">
-                  {message.sender === 'bot' && (
+                  {message.sender === "bot" && (
                     <Bot className="w-5 h-5 mt-0.5 text-gray-500 flex-shrink-0" />
                   )}
-                  {message.sender === 'user' && (
+                  {message.sender === "user" && (
                     <User className="w-5 h-5 mt-0.5 text-blue-100 flex-shrink-0" />
                   )}
                   <div className="flex-1">
-                    <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
-                    <p className={`text-xs mt-2 ${
-                      message.sender === 'user' ? 'text-blue-100' : 'text-gray-500'
-                    }`}>
-                      {message.timestamp.toLocaleTimeString('pt-BR', { 
-                        hour: '2-digit', 
-                        minute: '2-digit' 
+                    <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                      {message.content}
+                    </p>
+                    <p
+                      className={`text-xs mt-2 ${
+                        message.sender === "user"
+                          ? "text-blue-100"
+                          : "text-gray-500"
+                      }`}
+                    >
+                      {message.timestamp.toLocaleTimeString("pt-BR", {
+                        hour: "2-digit",
+                        minute: "2-digit",
                       })}
                     </p>
                   </div>
@@ -197,8 +235,14 @@ const AIAssistant: React.FC = () => {
                   <Bot className="w-5 h-5 text-gray-500" />
                   <div className="flex space-x-1">
                     <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                    <div
+                      className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                      style={{ animationDelay: "0.1s" }}
+                    ></div>
+                    <div
+                      className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                      style={{ animationDelay: "0.2s" }}
+                    ></div>
                   </div>
                 </div>
               </div>
@@ -230,7 +274,7 @@ const AIAssistant: React.FC = () => {
             </button>
           </div>
           <p className="text-xs text-gray-500 mt-2 text-center">
-            Powered by ChatGPT • Suas conversas são salvas automaticamente
+            Powered by Automatech IA • Suas conversas são salvas automaticamente
           </p>
         </div>
       </div>
