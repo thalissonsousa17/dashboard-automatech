@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+//import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { Lock, Mail, Eye, EyeOff, UserPlus, Home } from 'lucide-react';
+import { Lock, Mail, Eye, EyeOff,   } from 'lucide-react';
+  
+//import { UserPlus, Home } from 'lucide-react';
+
 
 const LoginForm: React.FC = () => {
-  const navigate = useNavigate();
+  //const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -54,7 +57,7 @@ const LoginForm: React.FC = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center">
+              <div className="w-10 h-10 bg-gradient-to-br from-green-600 to-blue-700 rounded-xl flex items-center justify-center">
                 <span className="text-white font-bold text-lg">A</span>
               </div>
               <div>
@@ -62,13 +65,13 @@ const LoginForm: React.FC = () => {
                 <p className="text-xs text-gray-500">Plataforma Educacional</p>
               </div>
             </div>
-            <button
+            {/* <button
               onClick={() => navigate('/')}
-              className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 px-3 py-2 rounded-lg hover:bg-gray-100 transition-all"
+              className="flex items-center space-x-2 bg-gradient-to-br from-green-700 to-blue-800 text-white hover:bg-gradient-to-br  hover:text-white px-3 py-2 rounded-lg hover:bg-gray-100 transition-all"
             >
               <Home className="w-4 h-4" />
               <span className="font-medium">Home</span>
-            </button>
+            </button> */}
           </div>
         </div>
       </header>
@@ -77,7 +80,7 @@ const LoginForm: React.FC = () => {
         <div className="bg-white rounded-2xl shadow-xl p-8">
           {/* Header */}
           <div className="text-center mb-8">
-            <div className="mx-auto w-16 h-16 bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl flex items-center justify-center mb-4">
+            <div className="mx-auto w-16 h-16 bg-gradient-to-br from-green-600 to-blue-700 rounded-2xl flex items-center justify-center mb-4">
               <span className="text-white font-bold text-xl">A</span>
             </div>
             <h1 className="text-2xl font-bold text-gray-900">Automatech Admin</h1>
@@ -166,7 +169,7 @@ const LoginForm: React.FC = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-blue-600 to-blue-700 text-white py-3 px-4 rounded-lg font-medium hover:from-blue-700 hover:to-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              className="w-full bg-gradient-to-r from-blue-700 to-blue-500 text-white py-3 px-4 rounded-lg font-medium hover:from-blue-700 hover:to-green-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
               {loading ? (isSignUp ? 'Criando conta...' : 'Entrando...') : (isSignUp ? 'Criar Conta' : 'Entrar')}
             </button>
@@ -192,8 +195,8 @@ const LoginForm: React.FC = () => {
                 </>
               ) : (
                 <>
-                  <UserPlus className="w-4 h-4 mr-2" />
-                  Não tem conta? Crie uma
+                  {/* <UserPlus className="w-4 h-4 mr-2" />
+                  Não tem conta? Crie uma */}
                 </>
               )}
             </button>
