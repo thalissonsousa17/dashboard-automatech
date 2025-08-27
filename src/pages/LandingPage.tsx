@@ -83,7 +83,7 @@ const AutomatechLandingPage: React.FC = () => {
             </div>
             <div className="flex items-center space-x-3">
               <button
-                onClick={() => window.open('/login')}
+                onClick={() => window.open('/login', '_self')}
                 className="border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition-all font-medium"
               >
                 Acessar Dashboard
