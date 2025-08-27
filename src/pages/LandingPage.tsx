@@ -198,7 +198,7 @@ const AutomatechLandingPage: React.FC = () => {
             <div>
               <div className="bg-white rounded-2xl shadow-xl p-4">
                 <img 
-                  src="/src/assets/2.png" 
+                  src="/assets/2.png" 
                   alt="QR Code para chamada" 
                   className="w-full rounded-lg"
                 />
