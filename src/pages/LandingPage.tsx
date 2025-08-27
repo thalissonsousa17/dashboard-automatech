@@ -46,13 +46,13 @@ const AutomatechLandingPage: React.FC = () => {
   const testimonials = [
     {
       name: "Prof. Morganna Pollynne",
-      subject: "Matemática - Ensino Médio",
+      subject: "Ensino Superior",
       text: "A Automatech revolucionou minhas aulas! O QR Code para chamada economiza 20 minutos por aula, e meus alunos adoram acessar os materiais pelo celular.",
       rating: 5
     },
     {
       name: "Prof. Arthur Felipe",
-      subject: "História - Ensino Fundamental",
+      subject: "Ensino Superior",
       text: "Nunca foi tão fácil organizar conteúdos e acompanhar o progresso dos alunos. A plataforma é intuitiva e meus alunos estão mais engajados.",
       rating: 5
     }
