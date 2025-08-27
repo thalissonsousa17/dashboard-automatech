@@ -50,7 +50,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
         {/* Header do Sidebar */}
         <div className="flex items-center justify-between  border-b border-gray-200">
           <div className="flex items-center space-x-2">          
-            <img className= "rounded-full w-20 h-20 p-5 z-40" src="/public/automatech-logo.png" alt="image description"></img>
+            <img className= "rounded-full w-20 h-20 p-5 z-40" src="/assets/automatech-logo.png" alt="Logo"></img>
             <span className="font-bold text-gray-900">Automatech</span>
           </div>
           {/* Botão de fechar para dispositivos móveis */}
