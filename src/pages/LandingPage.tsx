@@ -143,7 +143,7 @@ const AutomatechLandingPage: React.FC = () => {
             <div className="relative">
               <div className="bg-white rounded-2xl shadow-2xl p-8 border border-gray-200">
                 <img 
-                  src="/src/assets/Captura de tela 2025-08-26 194030.png" 
+                  src="/src/assets/1.png" 
                   alt="Dashboard da Automatech" 
                   className="w-full rounded-lg shadow-lg"
                 />
@@ -198,7 +198,7 @@ const AutomatechLandingPage: React.FC = () => {
             <div>
               <div className="bg-white rounded-2xl shadow-xl p-4">
                 <img 
-                  src="/src/assets/Captura de tela 2025-08-26 194050.png" 
+                  src="/src/assets/2.png" 
                   alt="QR Code para chamada" 
                   className="w-full rounded-lg"
                 />
@@ -256,7 +256,7 @@ const AutomatechLandingPage: React.FC = () => {
             <div className="order-1 lg:order-2">
               <div className="bg-white rounded-2xl shadow-xl p-4">
                 <img 
-                  src="/src/assets/Captura de tela 2025-08-26 194320.png" 
+                  src="/src/assets/3.png" 
                   alt="Organização de materiais" 
                   className="w-full rounded-lg"
                 />
