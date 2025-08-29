@@ -1,50 +1,56 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 //import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
-import { Lock, Mail, Eye, EyeOff,   } from 'lucide-react';
-  
-//import { UserPlus, Home } from 'lucide-react';
+import { useAuth } from "../../contexts/AuthContext";
+import { Lock, Mail, Eye, EyeOff } from "lucide-react";
 
+//import { UserPlus, Home } from 'lucide-react';
 
 const LoginForm: React.FC = () => {
   //const navigate = useNavigate();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  
+  const [error, setError] = useState("");
+
   const { signIn, signUp } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
+    setError("");
 
     if (isSignUp && password !== confirmPassword) {
-      setError('As senhas não coincidem');
+      setError("As senhas não coincidem");
       setLoading(false);
       return;
     }
 
     try {
-      const { error } = isSignUp 
+      const { error } = isSignUp
         ? await signUp(email, password)
         : await signIn(email, password);
-        
+
       if (error) {
-        setError(error.message || (isSignUp ? 'Erro ao criar conta' : 'Erro ao fazer login'));
-        console.log(error)
+        setError(
+          error.message ||
+            (isSignUp ? "Erro ao criar conta" : "Erro ao fazer login")
+        );
+        console.log(error);
       } else if (isSignUp) {
-        setError('');
-        alert('Conta criada com sucesso! Faça login para continuar.');
+        setError("");
+        alert("Conta criada com sucesso! Faça login para continuar.");
         setIsSignUp(false);
       }
     } catch (err) {
       console.log(err);
-      setError(isSignUp ? 'Erro ao criar conta. Tente novamente.' : 'Erro ao fazer login. Tente novamente.');
+      setError(
+        isSignUp
+          ? "Erro ao criar conta. Tente novamente."
+          : "Erro ao fazer login. Tente novamente."
+      );
     } finally {
       setLoading(false);
     }
@@ -83,9 +89,13 @@ const LoginForm: React.FC = () => {
             <div className="mx-auto w-16 h-16 bg-gradient-to-br from-green-600 to-blue-700 rounded-2xl flex items-center justify-center mb-4">
               <span className="text-white font-bold text-xl">A</span>
             </div>
-            <h1 className="text-2xl font-bold text-gray-900">Automatech Admin</h1>
+            <h1 className="text-2xl font-bold text-gray-900">
+              Automatech Admin
+            </h1>
             <p className="text-gray-600 mt-2">
-              {isSignUp ? 'Crie sua conta para acessar o painel' : 'Faça login para acessar o painel'}
+              {isSignUp
+                ? "Crie sua conta para acessar o painel"
+                : "Faça login para acessar o painel"}
             </p>
           </div>
 
@@ -125,7 +135,7 @@ const LoginForm: React.FC = () => {
                   <Lock className="h-5 w-5 text-gray-400" />
                 </div>
                 <input
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
@@ -156,7 +166,7 @@ const LoginForm: React.FC = () => {
                     <Lock className="h-5 w-5 text-gray-400" />
                   </div>
                   <input
-                    type={showPassword ? 'text' : 'password'}
+                    type={showPassword ? "text" : "password"}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
@@ -171,7 +181,13 @@ const LoginForm: React.FC = () => {
               disabled={loading}
               className="w-full bg-gradient-to-r from-blue-700 to-blue-500 text-white py-3 px-4 rounded-lg font-medium hover:from-blue-700 hover:to-green-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
             >
-              {loading ? (isSignUp ? 'Criando conta...' : 'Entrando...') : (isSignUp ? 'Criar Conta' : 'Entrar')}
+              {loading
+                ? isSignUp
+                  ? "Criando conta..."
+                  : "Entrando..."
+                : isSignUp
+                ? "Criar Conta"
+                : "Entrar"}
             </button>
           </form>
 
@@ -181,10 +197,10 @@ const LoginForm: React.FC = () => {
               type="button"
               onClick={() => {
                 setIsSignUp(!isSignUp);
-                setError('');
-                setEmail('');
-                setPassword('');
-                setConfirmPassword('');
+                setError("");
+                setEmail("");
+                setPassword("");
+                setConfirmPassword("");
               }}
               className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center justify-center mx-auto"
             >

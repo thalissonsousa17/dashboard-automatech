@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { supabase } from '../lib/supabase';
-import { useTeachingPosts } from '../hooks/useTeachingPosts';
-import { 
-  BookOpen, 
-  User, 
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { supabase } from "../lib/supabase";
+import { useTeachingPosts } from "../hooks/useTeachingPosts";
+import {
+  BookOpen,
+  User,
   Calendar,
   Eye,
   Heart,
@@ -17,8 +17,8 @@ import {
   ExternalLink,
   Download,
   Home,
-  X
-} from 'lucide-react';
+  X,
+} from "lucide-react";
 
 interface TeacherProfile {
   id: string;
@@ -41,12 +41,12 @@ interface TeachingPost {
   files: {
     name: string;
     url: string;
-    type: 'pdf' | 'ppt' | 'doc' | 'other';
+    type: "pdf" | "ppt" | "doc" | "other";
   }[];
   videos: {
     title: string;
     url: string;
-    platform: 'youtube' | 'vimeo' | 'other';
+    platform: "youtube" | "vimeo" | "other";
   }[];
   images: string[];
   tags: string[];
@@ -61,7 +61,7 @@ const TeacherProfile: React.FC = () => {
   const [profile, setProfile] = useState<TeacherProfile | null>(null);
   const [posts, setPosts] = useState<TeachingPost[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [selectedPost, setSelectedPost] = useState<TeachingPost | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
@@ -74,22 +74,22 @@ const TeacherProfile: React.FC = () => {
   const loadTeacherProfile = async () => {
     try {
       setLoading(true);
-      
+
       if (!supabase) {
-        setError('Sistema não configurado');
+        setError("Sistema não configurado");
         return;
       }
 
       // Buscar perfil do professor pelo slug
       const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('slug', slug)
-        .eq('is_public', true)
+        .from("profiles")
+        .select("*")
+        .eq("slug", slug)
+        .eq("is_public", true)
         .single();
 
       if (profileError || !profileData) {
-        setError('Professor não encontrado ou perfil não público');
+        setError("Professor não encontrado ou perfil não público");
         return;
       }
 
@@ -97,29 +97,29 @@ const TeacherProfile: React.FC = () => {
 
       // Buscar posts do professor
       const { data: postsData, error: postsError } = await supabase
-        .from('teaching_posts')
-        .select('*')
-        .eq('created_by', profileData.user_id)
-        .order('created_at', { ascending: false });
+        .from("teaching_posts")
+        .select("*")
+        .eq("created_by", profileData.user_id)
+        .order("created_at", { ascending: false });
 
       if (postsError) {
-        console.error('Erro ao carregar posts:', postsError);
+        console.error("Erro ao carregar posts:", postsError);
       } else {
         setPosts(postsData || []);
       }
-
     } catch (err) {
-      console.error('Erro ao carregar perfil:', err);
-      setError('Erro ao carregar perfil do professor');
+      console.error("Erro ao carregar perfil:", err);
+      setError("Erro ao carregar perfil do professor");
     } finally {
       setLoading(false);
     }
   };
 
   const getYouTubeVideoId = (url: string) => {
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const regExp =
+      /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
     const match = url.match(regExp);
-    return (match && match[2].length === 11) ? match[2] : null;
+    return match && match[2].length === 11 ? match[2] : null;
   };
 
   const getVimeoVideoId = (url: string) => {
@@ -130,9 +130,9 @@ const TeacherProfile: React.FC = () => {
 
   const handleDownload = (fileName: string, fileUrl: string) => {
     const mockFileContent = `Conteúdo do arquivo: ${fileName}\n\nEste é um arquivo de exemplo do Espaço Docente da Automatech.\nEm produção, este seria o conteúdo real do arquivo.`;
-    const blob = new Blob([mockFileContent], { type: 'text/plain' });
+    const blob = new Blob([mockFileContent], { type: "text/plain" });
     const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = url;
     link.download = fileName;
     document.body.appendChild(link);
@@ -144,16 +144,20 @@ const TeacherProfile: React.FC = () => {
 
   const getFileIcon = (type: string) => {
     switch (type) {
-      case 'pdf': return <FileText className="w-4 h-4 text-red-600" />;
-      case 'ppt': return <FileText className="w-4 h-4 text-orange-600" />;
-      case 'doc': return <FileText className="w-4 h-4 text-blue-600" />;
-      default: return <FileText className="w-4 h-4 text-gray-600" />;
+      case "pdf":
+        return <FileText className="w-4 h-4 text-red-600" />;
+      case "ppt":
+        return <FileText className="w-4 h-4 text-orange-600" />;
+      case "doc":
+        return <FileText className="w-4 h-4 text-blue-600" />;
+      default:
+        return <FileText className="w-4 h-4 text-gray-600" />;
     }
   };
 
   const nextImage = () => {
     if (selectedPost && selectedPost.images.length > 0) {
-      setCurrentImageIndex((prev) => 
+      setCurrentImageIndex((prev) =>
         prev === selectedPost.images.length - 1 ? 0 : prev + 1
       );
     }
@@ -161,7 +165,7 @@ const TeacherProfile: React.FC = () => {
 
   const prevImage = () => {
     if (selectedPost && selectedPost.images.length > 0) {
-      setCurrentImageIndex((prev) => 
+      setCurrentImageIndex((prev) =>
         prev === 0 ? selectedPost.images.length - 1 : prev - 1
       );
     }
@@ -169,14 +173,12 @@ const TeacherProfile: React.FC = () => {
 
   const incrementView = (postId) => {
     incrementViews(postId);
-  setPosts((prevPosts) =>
-    prevPosts.map((p) =>
-      p.id === postId
-        ? { ...p, views: (p.views || 0) + 1 }
-        : p
-    )
-  );
-};
+    setPosts((prevPosts) =>
+      prevPosts.map((p) =>
+        p.id === postId ? { ...p, views: (p.views || 0) + 1 } : p
+      )
+    );
+  };
 
   if (loading) {
     return (
@@ -191,10 +193,14 @@ const TeacherProfile: React.FC = () => {
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Professor não encontrado</h1>
-          <p className="text-gray-600 mb-4">{error || 'O perfil solicitado não existe ou não está público.'}</p>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            Professor não encontrado
+          </h1>
+          <p className="text-gray-600 mb-4">
+            {error || "O perfil solicitado não existe ou não está público."}
+          </p>
           <button
-            onClick={() => navigate('/')}
+            onClick={() => navigate("/")}
             className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
           >
             Voltar ao início
@@ -219,13 +225,13 @@ const TeacherProfile: React.FC = () => {
                 <p className="text-xs text-gray-500">Plataforma Educacional</p>
               </div>
             </div>
-            <button
+            {/* <button
               onClick={() => navigate('/')}
               className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 px-3 py-2 rounded-lg hover:bg-gray-100 transition-all"
             >
               <Home className="w-4 h-4" />
               <span className="font-medium">Home</span>
-            </button>
+            </button> */}
           </div>
         </div>
       </header>
@@ -236,8 +242,8 @@ const TeacherProfile: React.FC = () => {
           <div className="flex items-start space-x-6">
             <div className="w-24 h-24 bg-gradient-to-br from-blue-600 to-blue-700 rounded-2xl flex items-center justify-center">
               {profile.avatar_url ? (
-                <img 
-                  src={profile.avatar_url} 
+                <img
+                  src={profile.avatar_url}
                   alt={profile.display_name}
                   className="w-full h-full rounded-2xl object-cover"
                 />
@@ -246,7 +252,9 @@ const TeacherProfile: React.FC = () => {
               )}
             </div>
             <div className="flex-1">
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">{profile.display_name}</h1>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                {profile.display_name}
+              </h1>
               <p className="text-lg text-gray-600 mb-4">{profile.bio}</p>
               <div className="flex items-center space-x-4 text-sm text-gray-500">
                 <div className="flex items-center">
@@ -255,7 +263,8 @@ const TeacherProfile: React.FC = () => {
                 </div>
                 <div className="flex items-center">
                   <Eye className="w-4 h-4 mr-1" />
-                  {posts.reduce((total, post) => total + post.views, 0)} visualizações
+                  {posts.reduce((total, post) => total + post.views, 0)}{" "}
+                  visualizações
                 </div>
               </div>
             </div>
@@ -265,7 +274,10 @@ const TeacherProfile: React.FC = () => {
         {/* Posts Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {posts.map((post) => (
-            <div key={post.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg transition-all">
+            <div
+              key={post.id}
+              className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg transition-all"
+            >
               {/* Post Image */}
               {post.images.length > 0 && (
                 <div className="relative h-48 overflow-hidden bg-gray-100">
@@ -276,7 +288,9 @@ const TeacherProfile: React.FC = () => {
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                   <div className="absolute bottom-3 left-3 right-3">
-                    <h3 className="text-white font-semibold text-lg line-clamp-2">{post.title}</h3>
+                    <h3 className="text-white font-semibold text-lg line-clamp-2">
+                      {post.title}
+                    </h3>
                   </div>
                 </div>
               )}
@@ -284,24 +298,30 @@ const TeacherProfile: React.FC = () => {
               {/* Post Content */}
               <div className="p-6">
                 {post.images.length === 0 && (
-                  <h3 className="text-xl font-semibold text-gray-900 mb-3">{post.title}</h3>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-3">
+                    {post.title}
+                  </h3>
                 )}
-                
+
                 <div className="flex items-center space-x-4 text-sm text-gray-500 mb-3">
                   <div className="flex items-center">
                     <Calendar className="w-4 h-4 mr-1" />
-                    {new Date(post.created_at).toLocaleDateString('pt-BR')}
+                    {new Date(post.created_at).toLocaleDateString("pt-BR")}
                   </div>
                 </div>
 
                 <div className="space-y-2 mb-4">
                   <div className="text-sm">
-                    <span className="font-medium text-green-700">{post.subject}</span>
+                    <span className="font-medium text-green-700">
+                      {post.subject}
+                    </span>
                     <span className="text-gray-500"> • {post.grade_level}</span>
                   </div>
                 </div>
 
-                <p className="text-gray-600 text-sm mb-4 line-clamp-3">{post.description}</p>
+                <p className="text-gray-600 text-sm mb-4 line-clamp-3">
+                  {post.description}
+                </p>
 
                 {/* Tags */}
                 <div className="flex flex-wrap gap-2 mb-4">
@@ -322,11 +342,11 @@ const TeacherProfile: React.FC = () => {
                       <Eye className="w-4 h-4 mr-1" />
                       {post.views}
                     </div>
-                   
                   </div>
                   <div className="text-xs">
                     {post.files.length} arquivos
-                    {post.videos.length > 0 && ` • ${post.videos.length} vídeos`}
+                    {post.videos.length > 0 &&
+                      ` • ${post.videos.length} vídeos`}
                   </div>
                 </div>
 
@@ -350,8 +370,12 @@ const TeacherProfile: React.FC = () => {
         {posts.length === 0 && (
           <div className="text-center py-12">
             <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhum conteúdo publicado</h3>
-            <p className="text-gray-500">Este professor ainda não publicou nenhum material.</p>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              Nenhum conteúdo publicado
+            </h3>
+            <p className="text-gray-500">
+              Este professor ainda não publicou nenhum material.
+            </p>
           </div>
         )}
       </div>
@@ -364,7 +388,9 @@ const TeacherProfile: React.FC = () => {
             <div className="p-6 border-b border-gray-200">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900">{selectedPost.title}</h2>
+                  <h2 className="text-2xl font-bold text-gray-900">
+                    {selectedPost.title}
+                  </h2>
                   <div className="flex items-center space-x-4 text-sm text-gray-500 mt-2">
                     <div className="flex items-center">
                       <User className="w-4 h-4 mr-1" />
@@ -372,7 +398,9 @@ const TeacherProfile: React.FC = () => {
                     </div>
                     <div className="flex items-center">
                       <Calendar className="w-4 h-4 mr-1" />
-                      {new Date(selectedPost.created_at).toLocaleDateString('pt-BR')}
+                      {new Date(selectedPost.created_at).toLocaleDateString(
+                        "pt-BR"
+                      )}
                     </div>
                   </div>
                 </div>
@@ -393,7 +421,9 @@ const TeacherProfile: React.FC = () => {
                   <div className="relative h-80 rounded-lg overflow-hidden bg-gray-100">
                     <img
                       src={selectedPost.images[currentImageIndex]}
-                      alt={`${selectedPost.title} - Imagem ${currentImageIndex + 1}`}
+                      alt={`${selectedPost.title} - Imagem ${
+                        currentImageIndex + 1
+                      }`}
                       className="w-full h-full object-contain"
                     />
                     {selectedPost.images.length > 1 && (
@@ -420,7 +450,9 @@ const TeacherProfile: React.FC = () => {
                           key={index}
                           onClick={() => setCurrentImageIndex(index)}
                           className={`w-2 h-2 rounded-full ${
-                            index === currentImageIndex ? 'bg-green-600' : 'bg-gray-300'
+                            index === currentImageIndex
+                              ? "bg-green-600"
+                              : "bg-gray-300"
                           }`}
                         />
                       ))}
@@ -431,15 +463,21 @@ const TeacherProfile: React.FC = () => {
 
               {/* Description */}
               <div className="mb-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-3">Descrição</h3>
-                <p className="text-gray-700 leading-relaxed">{selectedPost.description}</p>
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                  Descrição
+                </h3>
+                <p className="text-gray-700 leading-relaxed">
+                  {selectedPost.description}
+                </p>
               </div>
 
               {/* Subject and Grade */}
               <div className="grid grid-cols-2 gap-4 mb-6">
                 <div>
                   <h4 className="font-medium text-gray-900 mb-1">Disciplina</h4>
-                  <p className="text-green-700 font-medium">{selectedPost.subject}</p>
+                  <p className="text-green-700 font-medium">
+                    {selectedPost.subject}
+                  </p>
                 </div>
                 <div>
                   <h4 className="font-medium text-gray-900 mb-1">Nível</h4>
@@ -450,13 +488,20 @@ const TeacherProfile: React.FC = () => {
               {/* Files */}
               {selectedPost.files.length > 0 && (
                 <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Materiais Didáticos</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                    Materiais Didáticos
+                  </h3>
                   <div className="space-y-2">
                     {selectedPost.files.map((file, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                      >
                         <div className="flex items-center space-x-3">
                           {getFileIcon(file.type)}
-                          <span className="text-sm font-medium text-gray-900">{file.name}</span>
+                          <span className="text-sm font-medium text-gray-900">
+                            {file.name}
+                          </span>
                         </div>
                         <button
                           onClick={() => handleDownload(file.name, file.url)}
@@ -474,23 +519,32 @@ const TeacherProfile: React.FC = () => {
               {/* Videos */}
               {selectedPost.videos.length > 0 && (
                 <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Vídeos Complementares</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                    Vídeos Complementares
+                  </h3>
                   <div className="space-y-4">
                     {selectedPost.videos.map((video, index) => (
-                      <div key={index} className="bg-gray-50 rounded-lg overflow-hidden">
+                      <div
+                        key={index}
+                        className="bg-gray-50 rounded-lg overflow-hidden"
+                      >
                         <div className="aspect-video bg-gray-900 relative">
-                          {video.platform === 'youtube' ? (
+                          {video.platform === "youtube" ? (
                             <iframe
-                              src={`https://www.youtube.com/embed/${getYouTubeVideoId(video.url)}`}
+                              src={`https://www.youtube.com/embed/${getYouTubeVideoId(
+                                video.url
+                              )}`}
                               title={video.title}
                               className="w-full h-full"
                               frameBorder="0"
                               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                               allowFullScreen
                             />
-                          ) : video.platform === 'vimeo' ? (
+                          ) : video.platform === "vimeo" ? (
                             <iframe
-                              src={`https://player.vimeo.com/video/${getVimeoVideoId(video.url)}`}
+                              src={`https://player.vimeo.com/video/${getVimeoVideoId(
+                                video.url
+                              )}`}
                               title={video.title}
                               className="w-full h-full"
                               frameBorder="0"
@@ -512,9 +566,13 @@ const TeacherProfile: React.FC = () => {
                           )}
                         </div>
                         <div className="p-3">
-                          <h4 className="font-medium text-gray-900">{video.title}</h4>
+                          <h4 className="font-medium text-gray-900">
+                            {video.title}
+                          </h4>
                           <div className="flex items-center justify-between mt-2">
-                            <span className="text-sm text-gray-500 capitalize">{video.platform}</span>
+                            <span className="text-sm text-gray-500 capitalize">
+                              {video.platform}
+                            </span>
                             <a
                               href={video.url}
                               target="_blank"
@@ -534,7 +592,9 @@ const TeacherProfile: React.FC = () => {
 
               {/* Tags */}
               <div className="mb-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-3">Tags</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                  Tags
+                </h3>
                 <div className="flex flex-wrap gap-2">
                   {selectedPost.tags.map((tag, index) => (
                     <span
@@ -549,7 +609,7 @@ const TeacherProfile: React.FC = () => {
 
               {/* Stats */}
               <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-                 <div className="flex items-center text-sm text-gray-500">
+                <div className="flex items-center text-sm text-gray-500">
                   <Eye className="w-4 h-4 mr-1" />
                   {selectedPost.views} visualizações
                 </div>
