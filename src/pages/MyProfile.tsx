@@ -1,16 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../hooks/useAuth';
-import { supabase } from '../lib/supabase';
-import { 
-  User, 
-  Mail, 
-  Calendar, 
-  Edit3, 
-  Save, 
+import React, { useState, useEffect } from "react";
+import { useAuth } from "../hooks/useAuth";
+import { supabase } from "../lib/supabase";
+import {
+  User,
+  Mail,
+  Calendar,
+  Edit3,
+  Save,
   X,
   Camera,
-  Shield
-} from 'lucide-react';
+  Shield,
+} from "lucide-react";
 
 interface UserProfile {
   id: string;
@@ -31,14 +31,14 @@ const MyProfile: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
-  
+  const [error, setError] = useState("");
+
   const [editForm, setEditForm] = useState({
-    display_name: '',
-    bio: '',
-    slug: '',
-    avatar_url: '',
-    is_public: false
+    display_name: "",
+    bio: "",
+    slug: "",
+    avatar_url: "",
+    is_public: false,
   });
 
   useEffect(() => {
@@ -50,81 +50,81 @@ const MyProfile: React.FC = () => {
   const loadProfile = async () => {
     try {
       setLoading(true);
-      
+
       if (!supabase || !user) {
         // Mock profile for demo
         const mockProfile: UserProfile = {
-          id: '1',
-          user_id: user?.id || 'mock-user',
-          display_name: user?.email?.split('@')[0] || 'Usuário',
-          bio: '',
-          slug: user?.email?.split('@')[0]?.toLowerCase() || 'usuario',
-          avatar_url: '',
+          id: "1",
+          user_id: user?.id || "mock-user",
+          display_name: user?.email?.split("@")[0] || "Usuário",
+          bio: "",
+          slug: user?.email?.split("@")[0]?.toLowerCase() || "usuario",
+          avatar_url: "",
           is_public: false,
-          role: 'admin',
+          role: "admin",
           created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         };
         setProfile(mockProfile);
         setEditForm({
           display_name: mockProfile.display_name,
-          bio: mockProfile.bio || '',
+          bio: mockProfile.bio || "",
           slug: mockProfile.slug,
-          avatar_url: mockProfile.avatar_url || '',
-          is_public: mockProfile.is_public
+          avatar_url: mockProfile.avatar_url || "",
+          is_public: mockProfile.is_public,
         });
         return;
       }
 
       const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('user_id', user.id)
+        .from("profiles")
+        .select("*")
+        .eq("user_id", user.id)
         .single();
 
-      if (error && error.code !== 'PGRST116') {
+      if (error && error.code !== "PGRST116") {
         throw error;
       }
 
       if (data) {
         setProfile(data);
         setEditForm({
-          display_name: data.display_name || '',
-          bio: data.bio || '',
-          slug: data.slug || '',
-          avatar_url: data.avatar_url || '',
-          is_public: data.is_public || false
+          display_name: data.display_name || "",
+          bio: data.bio || "",
+          slug: data.slug || "",
+          avatar_url: data.avatar_url || "",
+          is_public: data.is_public || false,
         });
       } else {
         // Create profile if doesn't exist
         const newProfile = {
           user_id: user.id,
-          display_name: user.email?.split('@')[0] || 'Usuário',
-          bio: '',
+          display_name: user.email?.split("@")[0] || "Usuário",
+          bio: "",
           is_public: false,
-          role: 'admin'
+          role: "admin",
         };
 
         const { data: createdProfile, error: createError } = await supabase
-          .from('profiles')
+          .from("profiles")
           .insert([newProfile])
           .select()
           .single();
 
         if (createError) throw createError;
-        
+
         setProfile(createdProfile);
         setEditForm({
-          display_name: createdProfile.display_name || '',
-          bio: createdProfile.bio || '',
-          slug: createdProfile.slug || '',
-          avatar_url: createdProfile.avatar_url || '',
-          is_public: createdProfile.is_public || false
+          display_name: createdProfile.display_name || "",
+          bio: createdProfile.bio || "",
+          slug: createdProfile.slug || "",
+          avatar_url: createdProfile.avatar_url || "",
+          is_public: createdProfile.is_public || false,
         });
       }
     } catch (err) {
-      console.error('Erro ao carregar perfil:', err);
-      setError('Erro ao carregar perfil');
+      console.error("Erro ao carregar perfil:", err);
+      setError("Erro ao carregar perfil");
     } finally {
       setLoading(false);
     }
@@ -135,43 +135,47 @@ const MyProfile: React.FC = () => {
 
     try {
       setSaving(true);
-      setError('');
+      setError("");
 
       if (!supabase) {
         // Mock save for demo
-        setProfile(prev => prev ? {
-          ...prev,
-          display_name: editForm.display_name,
-          bio: editForm.bio,
-          slug: editForm.slug,
-          avatar_url: editForm.avatar_url,
-          is_public: editForm.is_public,
-          updated_at: new Date().toISOString()
-        } : null);
+        setProfile((prev) =>
+          prev
+            ? {
+                ...prev,
+                display_name: editForm.display_name,
+                bio: editForm.bio,
+                slug: editForm.slug,
+                avatar_url: editForm.avatar_url,
+                is_public: editForm.is_public,
+                updated_at: new Date().toISOString(),
+              }
+            : null
+        );
         setEditing(false);
         return;
       }
 
       const { data, error } = await supabase
-        .from('profiles')
+        .from("profiles")
         .update({
           display_name: editForm.display_name,
           bio: editForm.bio,
           slug: editForm.slug,
           avatar_url: editForm.avatar_url,
-          is_public: editForm.is_public
+          is_public: editForm.is_public,
         })
-        .eq('user_id', user.id)
+        .eq("user_id", user.id)
         .select()
         .single();
 
       if (error) throw error;
-      
+
       setProfile(data);
       setEditing(false);
     } catch (err) {
-      console.error('Erro ao salvar perfil:', err);
-      setError('Erro ao salvar perfil');
+      console.error("Erro ao salvar perfil:", err);
+      setError("Erro ao salvar perfil");
     } finally {
       setSaving(false);
     }
@@ -180,15 +184,15 @@ const MyProfile: React.FC = () => {
   const handleCancel = () => {
     if (profile) {
       setEditForm({
-        display_name: profile.display_name || '',
-        bio: profile.bio || '',
-        slug: profile.slug || '',
-        avatar_url: profile.avatar_url || '',
-        is_public: profile.is_public || false
+        display_name: profile.display_name || "",
+        bio: profile.bio || "",
+        slug: profile.slug || "",
+        avatar_url: profile.avatar_url || "",
+        is_public: profile.is_public || false,
       });
     }
     setEditing(false);
-    setError('');
+    setError("");
   };
 
   if (loading) {
@@ -212,7 +216,9 @@ const MyProfile: React.FC = () => {
     return (
       <div className="text-center py-12">
         <User className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-        <h3 className="text-lg font-medium text-gray-900 mb-2">Perfil não encontrado</h3>
+        <h3 className="text-lg font-medium text-gray-900 mb-2">
+          Perfil não encontrado
+        </h3>
         <p className="text-gray-500">Erro ao carregar informações do perfil.</p>
       </div>
     );
@@ -223,7 +229,9 @@ const MyProfile: React.FC = () => {
       {/* Page Header */}
       <div>
         <h1 className="text-2xl font-bold text-gray-900 mb-2">Meu Perfil</h1>
-        <p className="text-gray-600">Gerencie suas informações pessoais e configurações</p>
+        <p className="text-gray-600">
+          Gerencie suas informações pessoais e configurações
+        </p>
       </div>
 
       {/* Profile Card */}
@@ -235,7 +243,9 @@ const MyProfile: React.FC = () => {
         )}
 
         <div className="flex items-start justify-between mb-6">
-          <h2 className="text-xl font-semibold text-gray-900">Informações Pessoais</h2>
+          <h2 className="text-xl font-semibold text-gray-900">
+            Informações Pessoais
+          </h2>
           {!editing && (
             <button
               onClick={() => setEditing(true)}
@@ -252,8 +262,8 @@ const MyProfile: React.FC = () => {
           <div className="relative">
             <div className="w-24 h-24 bg-gradient-to-br from-blue-600 to-blue-700 rounded-full flex items-center justify-center">
               {profile.avatar_url ? (
-                <img 
-                  src={profile.avatar_url} 
+                <img
+                  src={profile.avatar_url}
                   alt={profile.display_name}
                   className="w-full h-full rounded-full object-cover"
                 />
@@ -279,44 +289,61 @@ const MyProfile: React.FC = () => {
                   <input
                     type="text"
                     value={editForm.display_name}
-                    onChange={(e) => setEditForm(prev => ({ ...prev, display_name: e.target.value }))}
+                    onChange={(e) =>
+                      setEditForm((prev) => ({
+                        ...prev,
+                        display_name: e.target.value,
+                      }))
+                    }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="Seu nome"
                   />
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Biografia
                   </label>
                   <textarea
                     value={editForm.bio}
-                    onChange={(e) => setEditForm(prev => ({ ...prev, bio: e.target.value }))}
+                    onChange={(e) =>
+                      setEditForm((prev) => ({ ...prev, bio: e.target.value }))
+                    }
                     rows={3}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="Conte um pouco sobre você..."
                   />
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Slug do Perfil
                   </label>
                   <div className="flex items-center">
-                    <span className="text-sm text-gray-500 mr-2">automatech.com/professor/</span>
+                    <span className="text-sm text-gray-500 mr-2">
+                      automatech.com/professor/
+                    </span>
                     <input
                       type="text"
                       value={editForm.slug}
-                      onChange={(e) => setEditForm(prev => ({ ...prev, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') }))}
+                      onChange={(e) =>
+                        setEditForm((prev) => ({
+                          ...prev,
+                          slug: e.target.value
+                            .toLowerCase()
+                            .replace(/[^a-z0-9-]/g, ""),
+                        }))
+                      }
                       className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="seu-nome"
                     />
                   </div>
                   <p className="text-xs text-gray-500 mt-1">
-                    URL única para seu perfil público. Apenas letras, números e hífens.
+                    URL única para seu perfil público. Apenas letras, números e
+                    hífens.
                   </p>
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     URL do Avatar
@@ -324,15 +351,22 @@ const MyProfile: React.FC = () => {
                   <input
                     type="url"
                     value={editForm.avatar_url}
-                    onChange={(e) => setEditForm(prev => ({ ...prev, avatar_url: e.target.value }))}
+                    onChange={(e) =>
+                      setEditForm((prev) => ({
+                        ...prev,
+                        avatar_url: e.target.value,
+                      }))
+                    }
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="https://exemplo.com/avatar.jpg"
                   />
                 </div>
-                
+
                 <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                   <div>
-                    <h4 className="text-sm font-medium text-gray-900">Perfil Público</h4>
+                    <h4 className="text-sm font-medium text-gray-900">
+                      Perfil Público
+                    </h4>
                     <p className="text-sm text-gray-500">
                       Permitir que outros vejam seu perfil e publicações
                     </p>
@@ -341,7 +375,12 @@ const MyProfile: React.FC = () => {
                     <input
                       type="checkbox"
                       checked={editForm.is_public}
-                      onChange={(e) => setEditForm(prev => ({ ...prev, is_public: e.target.checked }))}
+                      onChange={(e) =>
+                        setEditForm((prev) => ({
+                          ...prev,
+                          is_public: e.target.checked,
+                        }))
+                      }
                       className="sr-only peer"
                     />
                     <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
@@ -350,9 +389,13 @@ const MyProfile: React.FC = () => {
               </div>
             ) : (
               <div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">{profile.display_name}</h3>
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                  {profile.display_name}
+                </h3>
                 {profile.bio && (
-                  <p className="text-gray-700 mb-3 leading-relaxed">{profile.bio}</p>
+                  <p className="text-gray-700 mb-3 leading-relaxed">
+                    {profile.bio}
+                  </p>
                 )}
                 <div className="space-y-2 text-sm text-gray-600">
                   <div className="flex items-center">
@@ -361,19 +404,20 @@ const MyProfile: React.FC = () => {
                   </div>
                   <div className="flex items-center">
                     <User className="w-4 h-4 mr-2" />
-                    automatech.com/professor/{profile.slug}
+                    https://edu.automatech.app.br/professor/{profile.slug}
                   </div>
                   <div className="flex items-center">
                     <Shield className="w-4 h-4 mr-2" />
-                    {profile.role === 'admin' ? 'Administrador' : profile.role}
+                    {profile.role === "admin" ? "Administrador" : profile.role}
                   </div>
                   <div className="flex items-center">
                     <Calendar className="w-4 h-4 mr-2" />
-                    Perfil {profile.is_public ? 'Público' : 'Privado'}
+                    Perfil {profile.is_public ? "Público" : "Privado"}
                   </div>
                   <div className="flex items-center">
                     <Calendar className="w-4 h-4 mr-2" />
-                    Membro desde {new Date(profile.created_at).toLocaleDateString('pt-BR')}
+                    Membro desde{" "}
+                    {new Date(profile.created_at).toLocaleDateString("pt-BR")}
                   </div>
                 </div>
               </div>
@@ -397,7 +441,7 @@ const MyProfile: React.FC = () => {
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center"
             >
               <Save className="w-4 h-4 mr-2" />
-              {saving ? 'Salvando...' : 'Salvar'}
+              {saving ? "Salvando..." : "Salvar"}
             </button>
           </div>
         )}
@@ -405,29 +449,47 @@ const MyProfile: React.FC = () => {
 
       {/* Account Info */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">Informações da Conta</h2>
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">
+          Informações da Conta
+        </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <h3 className="text-sm font-medium text-gray-700 mb-2">ID do Usuário</h3>
-            <p className="text-sm text-gray-900 font-mono bg-gray-50 p-2 rounded">{user?.id}</p>
+            <h3 className="text-sm font-medium text-gray-700 mb-2">
+              ID do Usuário
+            </h3>
+            <p className="text-sm text-gray-900 font-mono bg-gray-50 p-2 rounded">
+              {user?.id}
+            </p>
           </div>
           <div>
-            <h3 className="text-sm font-medium text-gray-700 mb-2">Slug do Perfil</h3>
-            <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">{profile.slug}</p>
+            <h3 className="text-sm font-medium text-gray-700 mb-2">
+              Slug do Perfil
+            </h3>
+            <p className="text-sm text-gray-900 bg-gray-50 p-2 rounded">
+              {profile.slug}
+            </p>
           </div>
           <div>
-            <h3 className="text-sm font-medium text-gray-700 mb-2">Última Atualização</h3>
-            <p className="text-sm text-gray-900">{new Date(profile.updated_at).toLocaleString('pt-BR')}</p>
-          </div>
-          <div>
-            <h3 className="text-sm font-medium text-gray-700 mb-2">Status do Perfil</h3>
+            <h3 className="text-sm font-medium text-gray-700 mb-2">
+              Última Atualização
+            </h3>
             <p className="text-sm text-gray-900">
-              <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                profile.is_public 
-                  ? 'bg-green-100 text-green-800' 
-                  : 'bg-gray-100 text-gray-800'
-              }`}>
-                {profile.is_public ? '🌐 Público' : '🔒 Privado'}
+              {new Date(profile.updated_at).toLocaleString("pt-BR")}
+            </p>
+          </div>
+          <div>
+            <h3 className="text-sm font-medium text-gray-700 mb-2">
+              Status do Perfil
+            </h3>
+            <p className="text-sm text-gray-900">
+              <span
+                className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                  profile.is_public
+                    ? "bg-green-100 text-green-800"
+                    : "bg-gray-100 text-gray-800"
+                }`}
+              >
+                {profile.is_public ? "🌐 Público" : "🔒 Privado"}
               </span>
             </p>
           </div>
