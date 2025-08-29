@@ -260,7 +260,7 @@ const MyProfile: React.FC = () => {
         <div className="flex items-center space-x-6 mb-6">
           {/* Avatar */}
           <div className="relative">
-            <div className="w-24 h-24 bg-gradient-to-br from-blue-600 to-blue-700 rounded-full flex items-center justify-center">
+            <div className="w-24 h-24 bg-gradient-to-br from-green-800 to-blue-700 rounded-full flex items-center justify-center">
               {profile.avatar_url ? (
                 <img
                   src={profile.avatar_url}

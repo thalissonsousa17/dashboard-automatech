@@ -8,6 +8,7 @@ import {
   LogOut,
   X,
   QrCodeIcon,
+  BookOpen,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 
@@ -55,13 +56,18 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
       >
         {/* Header do Sidebar */}
         <div className="flex items-center justify-between  border-b border-gray-200">
-          <div className="flex items-center space-x-2">
-            <img
+          <div className="flex px-5 py-5 items-center space-x-2">
+            <div className="w-10 h-10  bg-gradient-to-br from-blue-600 to-green-700 rounded-xl flex items-center justify-center">
+              <BookOpen className="w-6 h-6 text-white" />
+            </div>
+            {/* <img
               className="rounded-full w-20 h-20 p-5 z-40"
               src="/assets/automatech-logo.png"
               alt="Logo"
-            ></img>
-            <span className="font-bold text-gray-900">Automatech</span>
+            ></img> */}
+            <span className="text-xl font-extrabold bg-gradient-to-r from-blue-800  to-green-800 bg-clip-text text-transparent">
+              AUTOMATECH
+            </span>
           </div>
           {/* Botão de fechar para dispositivos móveis */}
           <button
