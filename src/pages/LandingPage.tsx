@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React from "react";
 import {
   ArrowRight,
   CheckCircle,
@@ -74,14 +74,6 @@ const AutomatechLandingPage: React.FC = () => {
       rating: 5,
     },
   ];
-
-  useEffect(() => {
-    const yearElement = document.getElementById("current-year");
-    const currentYear = new Date().getFullYear();
-    if (yearElement) {
-      yearElement.textContent = currentYear.toString();
-    }
-  }, []);
 
   return (
     <div className="min-h-screen bg-white">
@@ -482,7 +474,7 @@ const AutomatechLandingPage: React.FC = () => {
 
           <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400">
             <p>
-              &copy;<span id="current-year"></span> Automatech. Todos os
+              &copy;<span>{new Date().getFullYear()}</span> Automatech. Todos os
               direitos reservados.
             </p>
           </div>
