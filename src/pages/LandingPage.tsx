@@ -34,7 +34,7 @@ const AutomatechLandingPage: React.FC = () => {
       icon: Zap,
       title: "Correção Automatizada",
       description:
-        "Sistema inteligente que ajuda na correção de trabalhos e fornece feedback personalizado para cada aluno.",
+        "Um sistema inteligente que não apenas corrige, mas também fornece feedback personalizado, garantindo uma avaliação justa e detalhada para cada aluno, tudo de forma automática.",
       available: false,
     },
     {
@@ -48,8 +48,15 @@ const AutomatechLandingPage: React.FC = () => {
       icon: Clock,
       title: "Economia de Tempo",
       description:
-        "Automatize tarefas repetitivas e foque no que realmente importa: ensinar e inspirar seus alunos.",
+        "Deixe as tarefas repetitivas com a gente. Use nosso sistema para automatizar processos e dedique seu foco total a ensinar e inspirar seus alunos.",
       available: true,
+    },
+    {
+      icon: Clock,
+      title: "Assistente Automatech IA",
+      description:
+        "O Assistente Automatech IA é uma ferramenta virtual que oferece suporte para análise de texto, automação, suporte técnico e revisão acadêmica. Ele otimiza suas tarefas diárias, garantindo mais eficiência em um só lugar.",
+      available: false,
     },
   ];
 
