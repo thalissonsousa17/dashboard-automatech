@@ -1,15 +1,14 @@
 # 📊 Dashboard AutomaTech
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![React](https://img.shields.io/badge/React-18.x-blue.svg)](https://reactjs.org/)
-[![Supabase](https://img.shields.io/badge/Supabase-Backend-green.svg)](https://supabase.com/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![React](https://img.shields.io/badge/React-18.x-blue.svg)](https://reactjs.org/) [![Supabase](https://img.shields.io/badge/Supabase-Backend-green.svg)](https://supabase.com/) [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
 
 > Um dashboard moderno e responsivo para automação e gerenciamento de processos tecnológicos, desenvolvido com React e Supabase.
 
 ## 🚀 Experimente Online
 
-🌐 **[Acesse a Demonstração Online](https://seu-projeto.vercel.app)** *(Adicionar link de produção)*
+[![Live Demo](https://img.shields.io/badge/🌐_Acesse_o_Dashboard_Online-edu.automatech.app.br-4CAF50?style=for-the-badge&logo=web&logoColor=white)](https://edu.automatech.app.br)
+
+**🎯 [Demonstração ao Vivo - edu.automatech.app.br](https://edu.automatech.app.br)**
 
 ## 📸 Demonstração
 
@@ -107,17 +106,20 @@ Contribuições são sempre bem-vindas! Siga os passos abaixo para contribuir co
    - Clique no botão "Fork" no canto superior direito do GitHub
 
 2. **Clone seu fork localmente:**
+
 ```bash
 git clone https://github.com/SEU_USERNAME/dashboard-automatech.git
 cd dashboard-automatech
 ```
 
 3. **Adicione o repositório original como upstream:**
+
 ```bash
 git remote add upstream https://github.com/thalissonsousa17/dashboard-automatech.git
 ```
 
 4. **Instale as dependências:**
+
 ```bash
 npm install
 ```
@@ -125,17 +127,20 @@ npm install
 ### 🔄 Desenvolvimento
 
 1. **Crie uma branch para sua feature:**
+
 ```bash
 git checkout -b feature/minha-nova-feature
 ```
 
 2. **Faça suas alterações e commits:**
+
 ```bash
 git add .
 git commit -m "feat: adiciona nova funcionalidade X"
 ```
 
 3. **Mantenha seu fork atualizado:**
+
 ```bash
 git fetch upstream
 git checkout main
@@ -145,18 +150,19 @@ git merge upstream/main
 ### 📤 Pull Request
 
 1. **Push da sua branch:**
+
 ```bash
 git push origin feature/minha-nova-feature
 ```
 
 2. **Abra um Pull Request:**
-   • Vá para o repositório original no GitHub
-   • Clique em "New Pull Request"
-   • Selecione sua branch e descreva as mudanças
+   - Vá para o repositório original no GitHub
+   - Clique em "New Pull Request"
+   - Selecione sua branch e descreva as mudanças
 
 3. **Aguarde o review:**
-   • Responda aos comentários se houver
-   • Faça ajustes se necessário
+   - Responda aos comentários se houver
+   - Faça ajustes se necessário
 
 ### 📝 Diretrizes para Contribuição
 
@@ -170,13 +176,13 @@ git push origin feature/minha-nova-feature
 
 Usamos o padrão [Conventional Commits](https://www.conventionalcommits.org/):
 
-- `feat:` nova funcionalidade
-- `fix:` correção de bug
-- `docs:` alterações na documentação
-- `style:` formatação, pontos e vírgulas ausentes, etc.
-- `refactor:` refatoração de código
-- `test:` adição de testes
-- `chore:` atualizações de build, configurações, etc.
+- `feat`: nova funcionalidade
+- `fix`: correção de bug
+- `docs`: alterações na documentação
+- `style`: formatação, pontos e vírgulas ausentes, etc.
+- `refactor`: refatoração de código
+- `test`: adição de testes
+- `chore`: atualizações de build, configurações, etc.
 
 ## 📄 Licença
 
@@ -185,6 +191,7 @@ Este projeto está licenciado sob a Licença MIT - veja o arquivo [LICENSE](LICE
 ## 👨‍💻 Autor
 
 **Thalisson Sousa**
+
 - GitHub: [@thalissonsousa17](https://github.com/thalissonsousa17)
 - LinkedIn: [Adicionar perfil LinkedIn](https://linkedin.com/in/seu-perfil)
 - Email: [Adicionar email de contato](mailto:seu-email@exemplo.com)
@@ -195,8 +202,4 @@ Este projeto está licenciado sob a Licença MIT - veja o arquivo [LICENSE](LICE
   <sub>Desenvolvido com ❤️ por <a href="https://github.com/thalissonsousa17">Thalisson Sousa</a></sub>
 </div>
 
-<div align="center">
-  
-⭐ **Se este projeto te ajudou, considere dar uma estrela!** ⭐
-  
-</div>
+⭐ Se este projeto te ajudou, considere dar uma estrela! ⭐
