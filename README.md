@@ -1,5 +1,7 @@
 # Dashboard Automatech - Docentes
 
+Dashboard Automatech é uma plataforma desenvolvida para centralizar e simplificar o gerenciamento de atividades, dados e indicadores internos, trazendo praticidade e controle para equipes e gestores.
+
 Plataforma para gestão de atividades docentes.
 
 ## Tecnologias & Linguagens Utilizadas
