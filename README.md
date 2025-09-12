@@ -26,7 +26,7 @@
 | 📈 Visualização de Dados | Gráficos e métricas em tempo real | ✅ |
 | ⚙️ Automação | Ferramentas para automatizar processos | 🚧 |
 | 📱 PWA Ready | Aplicação web progressiva | 📋 |
-| 🌙 Modo Escuro | Alternância entre temas claro e escuro | 📋 |
+
 
 **Legenda:** ✅ Implementado | 🚧 Em desenvolvimento | 📋 Planejado
 
