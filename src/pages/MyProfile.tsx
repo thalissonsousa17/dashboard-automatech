@@ -51,7 +51,7 @@ const MyProfile: React.FC = () => {
     try {
       setLoading(true);
 
-      if (!supabase || !user) {
+      if (!import.meta.env.VITE_SUPABASE_URL || !user) {
         // Mock profile for demo
         const mockProfile: UserProfile = {
           id: "1",
@@ -61,7 +61,7 @@ const MyProfile: React.FC = () => {
           slug: user?.email?.split("@")[0]?.toLowerCase() || "usuario",
           avatar_url: "",
           is_public: false,
-          role: "admin",
+          role: user?.user_metadata?.role || "professor",
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         };
@@ -102,7 +102,6 @@ const MyProfile: React.FC = () => {
           display_name: user.email?.split("@")[0] || "Usuário",
           bio: "",
           is_public: false,
-          role: "admin",
         };
 
         const { data: createdProfile, error: createError } = await supabase
@@ -137,7 +136,7 @@ const MyProfile: React.FC = () => {
       setSaving(true);
       setError("");
 
-      if (!supabase) {
+      if (!import.meta.env.VITE_SUPABASE_URL) {
         // Mock save for demo
         setProfile((prev) =>
           prev
@@ -408,7 +407,7 @@ const MyProfile: React.FC = () => {
                   </div>
                   <div className="flex items-center">
                     <Shield className="w-4 h-4 mr-2" />
-                    {profile.role === "admin" ? "Administrador" : profile.role}
+                    {profile.role === "admin" ? "Administrador" : "Professor"}
                   </div>
                   <div className="flex items-center">
                     <Calendar className="w-4 h-4 mr-2" />

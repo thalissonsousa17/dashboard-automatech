@@ -1,18 +1,29 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { MessageSquare, X, Send, Bot, User, Minimize2, Maximize2 } from 'lucide-react';
-import { openAIService } from '../../lib/openai';
-import { ChatMessage } from '../../types';
+import React, { useState, useRef, useEffect } from "react";
+import {
+  MessageSquare,
+  X,
+  Send,
+  Bot,
+  User,
+  Minimize2,
+  Maximize2,
+} from "lucide-react";
+import { openAIService } from "../../lib/openai";
+import { ChatMessage } from "../../types";
 
 interface FloatingAssistantProps {
   selectedText?: string;
   onClose?: () => void;
 }
 
-const FloatingAssistant: React.FC<FloatingAssistantProps> = ({ selectedText, onClose }) => {
+const FloatingAssistant: React.FC<FloatingAssistantProps> = ({
+  selectedText,
+  onClose,
+}) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [inputMessage, setInputMessage] = useState('');
+  const [inputMessage, setInputMessage] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -23,32 +34,32 @@ const FloatingAssistant: React.FC<FloatingAssistantProps> = ({ selectedText, onC
   }, [selectedText]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   const handleAIResponse = async (userMessage: string) => {
     setIsTyping(true);
-    
+
     try {
-      const conversationHistory = messages.map(msg => ({
-        role: msg.sender === 'user' ? 'user' : 'assistant',
-        content: msg.content
+      const conversationHistory = messages.map((msg) => ({
+        role: msg.sender === "user" ? "user" : "assistant",
+        content: msg.content,
       }));
-      
-      conversationHistory.push({ role: 'user', content: userMessage });
-      
+
+      conversationHistory.push({ role: "user", content: userMessage });
+
       const response = await openAIService.chatCompletion(conversationHistory);
-      
+
       const aiMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         content: response,
-        sender: 'bot',
-        timestamp: new Date()
+        sender: "bot",
+        timestamp: new Date(),
       };
-      
-      setMessages(prev => [...prev, aiMessage]);
+
+      setMessages((prev) => [...prev, aiMessage]);
     } catch (error) {
-      console.error('Erro no chat:', error);
+      console.error("Erro no chat:", error);
     } finally {
       setIsTyping(false);
     }
@@ -56,14 +67,14 @@ const FloatingAssistant: React.FC<FloatingAssistantProps> = ({ selectedText, onC
 
   const analyzeSelectedText = async () => {
     if (!selectedText) return;
-    
+
     const contextMessage: ChatMessage = {
       id: Date.now().toString(),
       content: `Analise este texto: "${selectedText}"`,
-      sender: 'user',
-      timestamp: new Date()
+      sender: "user",
+      timestamp: new Date(),
     };
-    setMessages(prev => [...prev, contextMessage]);
+    setMessages((prev) => [...prev, contextMessage]);
     await handleAIResponse(`Analise este texto: "${selectedText}"`);
     onClose?.();
   };
@@ -74,19 +85,19 @@ const FloatingAssistant: React.FC<FloatingAssistantProps> = ({ selectedText, onC
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
       content: inputMessage,
-      sender: 'user',
-      timestamp: new Date()
+      sender: "user",
+      timestamp: new Date(),
     };
 
-    setMessages(prev => [...prev, userMessage]);
+    setMessages((prev) => [...prev, userMessage]);
     const messageToSend = inputMessage;
-    setInputMessage('');
-    
+    setInputMessage("");
+
     await handleAIResponse(messageToSend);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
     }
@@ -104,9 +115,11 @@ const FloatingAssistant: React.FC<FloatingAssistantProps> = ({ selectedText, onC
   }
 
   return (
-    <div className={`fixed bottom-6 right-6 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 transition-all ${
-      isMinimized ? 'w-80 h-16' : 'w-96 h-[500px]'
-    }`}>
+    <div
+      className={`fixed bottom-6 right-6 bg-white rounded-xl shadow-2xl border border-gray-200 z-50 transition-all ${
+        isMinimized ? "w-80 h-16" : "w-96 h-[500px]"
+      }`}
+    >
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-t-xl">
         <div className="flex items-center space-x-2">
@@ -118,7 +131,11 @@ const FloatingAssistant: React.FC<FloatingAssistantProps> = ({ selectedText, onC
             onClick={() => setIsMinimized(!isMinimized)}
             className="p-1 hover:bg-blue-800 rounded"
           >
-            {isMinimized ? <Maximize2 className="w-4 h-4" /> : <Minimize2 className="w-4 h-4" />}
+            {isMinimized ? (
+              <Maximize2 className="w-4 h-4" />
+            ) : (
+              <Minimize2 className="w-4 h-4" />
+            )}
           </button>
           <button
             onClick={() => {
@@ -140,7 +157,10 @@ const FloatingAssistant: React.FC<FloatingAssistantProps> = ({ selectedText, onC
               <div className="text-center py-8">
                 <Bot className="w-12 h-12 text-blue-500 mx-auto mb-3" />
                 <p className="text-gray-700 text-sm mb-4">
-                  Texto selecionado: <span className="font-medium">"{selectedText.substring(0, 50)}..."</span>
+                  Texto selecionado:{" "}
+                  <span className="font-medium">
+                    "{selectedText.substring(0, 50)}..."
+                  </span>
                 </p>
                 <button
                   onClick={analyzeSelectedText}
@@ -150,7 +170,7 @@ const FloatingAssistant: React.FC<FloatingAssistantProps> = ({ selectedText, onC
                 </button>
               </div>
             )}
-            
+
             {messages.length === 0 && !selectedText && (
               <div className="text-center py-8">
                 <Bot className="w-12 h-12 text-gray-300 mx-auto mb-3" />
@@ -163,24 +183,34 @@ const FloatingAssistant: React.FC<FloatingAssistantProps> = ({ selectedText, onC
             {messages.map((message) => (
               <div
                 key={message.id}
-                className={`flex ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+                className={`flex ${message.sender === "user" ? "justify-end" : "justify-start"}`}
               >
-                <div className={`max-w-xs px-3 py-2 rounded-lg text-sm ${
-                  message.sender === 'user'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-900'
-                }`}>
+                <div
+                  className={`max-w-xs px-3 py-2 rounded-lg text-sm ${
+                    message.sender === "user"
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-100 text-gray-900"
+                  }`}
+                >
                   <div className="flex items-start space-x-2">
-                    {message.sender === 'bot' && <Bot className="w-3 h-3 mt-1 text-gray-500" />}
-                    {message.sender === 'user' && <User className="w-3 h-3 mt-1 text-blue-100" />}
+                    {message.sender === "bot" && (
+                      <Bot className="w-3 h-3 mt-1 text-gray-500" />
+                    )}
+                    {message.sender === "user" && (
+                      <User className="w-3 h-3 mt-1 text-blue-100" />
+                    )}
                     <div>
                       <p>{message.content}</p>
-                      <p className={`text-xs mt-1 ${
-                        message.sender === 'user' ? 'text-blue-100' : 'text-gray-500'
-                      }`}>
-                        {message.timestamp.toLocaleTimeString('pt-BR', { 
-                          hour: '2-digit', 
-                          minute: '2-digit' 
+                      <p
+                        className={`text-xs mt-1 ${
+                          message.sender === "user"
+                            ? "text-blue-100"
+                            : "text-gray-500"
+                        }`}
+                      >
+                        {message.timestamp.toLocaleTimeString("pt-BR", {
+                          hour: "2-digit",
+                          minute: "2-digit",
                         })}
                       </p>
                     </div>
@@ -196,8 +226,14 @@ const FloatingAssistant: React.FC<FloatingAssistantProps> = ({ selectedText, onC
                     <Bot className="w-3 h-3 text-gray-500" />
                     <div className="flex space-x-1">
                       <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                      <div
+                        className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                        style={{ animationDelay: "0.1s" }}
+                      ></div>
+                      <div
+                        className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"
+                        style={{ animationDelay: "0.2s" }}
+                      ></div>
                     </div>
                   </div>
                 </div>

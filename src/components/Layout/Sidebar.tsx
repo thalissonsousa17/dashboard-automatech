@@ -9,6 +9,8 @@ import {
   X,
   QrCodeIcon,
   BookOpen,
+  Shield,
+  FileText,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 
@@ -18,9 +20,16 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
-  const { signOut } = useAuth();
+  const { signOut, isAdmin } = useAuth();
 
-  const navItems = [
+  interface NavItem {
+    to: string;
+    icon: React.ElementType;
+    label: string;
+    url?: string;
+  }
+
+  const navItems: NavItem[] = [
     { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
     {
       to: "/dashboard/publicar-post",
@@ -29,11 +38,20 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
     },
     { to: "/dashboard/espaco-docente", icon: Globe, label: "Espaço Docente" },
     {
+      to: "/dashboard/student-submissions",
+      icon: FileText,
+      label: "Trabalhos dos Alunos",
+    },
+    {
       to: "/dashboard/qr-chamada",
       icon: QrCodeIcon,
       label: "QR Chamada",
       url: "https://qrchamada.automatech.app.br/login",
     },
+    // Item exclusivo do admin
+    ...(isAdmin
+      ? [{ to: "/dashboard/admin", icon: Shield, label: "Painel Admin" }]
+      : []),
   ];
 
   return (
@@ -80,8 +98,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
 
         {/* Navegação */}
         <nav className="flex-1 px-4 py-6 space-y-2">
-          {navItems.map((item) =>
-            item.url ? (
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            return item.url ? (
               // Link externo
               <a
                 key={item.to}
@@ -90,7 +109,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
                 rel="noopener noreferrer"
                 className="flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-gray-600 hover:bg-gray-50 hover:text-gray-900"
               >
-                <item.icon className="w-5 h-5" />
+                <Icon className="w-5 h-5" />
                 <span>{item.label}</span>
               </a>
             ) : (
@@ -108,11 +127,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
                   }
                 `}
               >
-                <item.icon className="w-5 h-5" />
+                <Icon className="w-5 h-5" />
                 <span>{item.label}</span>
               </NavLink>
-            )
-          )}
+            );
+          })}
         </nav>
 
         {/* Rodapé do Sidebar */}

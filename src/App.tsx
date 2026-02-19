@@ -1,23 +1,30 @@
-import React from 'react';
-import { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
-import Layout from './components/Layout/Layout';
-import LandingPage from './pages/LandingPage';
-import LoginForm from './components/Auth/LoginForm';
-import Dashboard from './pages/Dashboard';
-import Projects from './pages/Projects';
-import EspacoDocente from './pages/EspacoDocente';
-import StudentSubmissions from './pages/StudentSubmissions';
-import PublicarPost from './pages/PublicarPost';
-import AITest from './pages/AITest';
-import AIAssistant from './pages/AIAssistant';
-import SubmitWork from './pages/SubmitWork';
-import TeacherProfile from './pages/TeacherProfile';
-import MyProfile from './pages/MyProfile';
-import FloatingAssistant from './components/AI/FloatingAssistant';
+import React from "react";
+import { useState, useEffect } from "react";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import Layout from "./components/Layout/Layout";
+import LandingPage from "./pages/LandingPage";
+import LoginForm from "./components/Auth/LoginForm";
+import Dashboard from "./pages/Dashboard";
+import EspacoDocente from "./pages/EspacoDocente";
+import StudentSubmissions from "./pages/StudentSubmissions";
+import PublicarPost from "./pages/PublicarPost";
+import AIAssistant from "./pages/AIAssistant";
+import SubmitWork from "./pages/SubmitWork";
+import TeacherProfile from "./pages/TeacherProfile";
+import MyProfile from "./pages/MyProfile";
+import AdminDashboard from "./pages/AdminDashboard";
+import FloatingAssistant from "./components/AI/FloatingAssistant";
+import AdminRoute from "./components/Auth/AdminRoute";
 
-const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const { user, loading } = useAuth();
 
   if (loading) {
@@ -46,28 +53,45 @@ const AppRoutes: React.FC = () => {
     <Routes>
       {/* Rotas Públicas */}
       <Route path="/" element={<LandingPage />} />
-      <Route path="/login" element={!user ? <LoginForm /> : <Navigate to="/dashboard" replace />} />
+      <Route
+        path="/login"
+        element={!user ? <LoginForm /> : <Navigate to="/dashboard" replace />}
+      />
       <Route path="/submit/:folderId" element={<SubmitWork />} />
       <Route path="/espaco-docente" element={<EspacoDocente />} />
       <Route path="/professor/:slug" element={<TeacherProfile />} />
-      
+
       {/* Rotas Protegidas (Dashboard) */}
-      <Route path="/dashboard/*" element={
-        <ProtectedRoute>
-          <Layout>
-            <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/publicar-post" element={<PublicarPost />} />
-              <Route path="/espaco-docente" element={<EspacoDocente />} />
-              <Route path="/student-submissions" element={<StudentSubmissionsWithAssistant />} />
-              <Route path="/ai-assistant" element={<AIAssistant />} />
-              <Route path="/meu-perfil" element={<MyProfile />} />
-              <Route path="*" element={<Navigate to="/dashboard" />} />
-            </Routes>
-          </Layout>
-        </ProtectedRoute>
-      } />
-      
+      <Route
+        path="/dashboard/*"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <Routes>
+                <Route path="/" element={<Dashboard />} />
+                <Route path="/publicar-post" element={<PublicarPost />} />
+                <Route path="/espaco-docente" element={<EspacoDocente />} />
+                <Route
+                  path="/student-submissions"
+                  element={<StudentSubmissionsWithAssistant />}
+                />
+                <Route path="/ai-assistant" element={<AIAssistant />} />
+                <Route path="/meu-perfil" element={<MyProfile />} />
+                <Route
+                  path="/admin"
+                  element={
+                    <AdminRoute>
+                      <AdminDashboard />
+                    </AdminRoute>
+                  }
+                />
+                <Route path="*" element={<Navigate to="/dashboard" />} />
+              </Routes>
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
       {/* Redirect para landing page */}
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
@@ -76,7 +100,7 @@ const AppRoutes: React.FC = () => {
 
 // Componente wrapper para Student Submissions com assistente IA
 const StudentSubmissionsWithAssistant: React.FC = () => {
-  const [selectedText, setSelectedText] = useState('');
+  const [selectedText, setSelectedText] = useState("");
 
   // Detectar seleção de texto apenas nesta página
   useEffect(() => {
@@ -87,16 +111,16 @@ const StudentSubmissionsWithAssistant: React.FC = () => {
       }
     };
 
-    document.addEventListener('mouseup', handleTextSelection);
-    return () => document.removeEventListener('mouseup', handleTextSelection);
+    document.addEventListener("mouseup", handleTextSelection);
+    return () => document.removeEventListener("mouseup", handleTextSelection);
   }, []);
 
   return (
     <>
       <StudentSubmissions />
-      <FloatingAssistant 
-        selectedText={selectedText} 
-        onClose={() => setSelectedText('')} 
+      <FloatingAssistant
+        selectedText={selectedText}
+        onClose={() => setSelectedText("")}
       />
     </>
   );

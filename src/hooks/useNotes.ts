@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '../integrations/supabase/client';
+import { useState, useEffect } from "react";
+import { supabase } from "../lib/supabase";
 
 export interface Note {
   id: string;
@@ -21,27 +21,27 @@ export const useNotes = () => {
       setError(null);
 
       const { data, error: fetchError } = await supabase
-        .from('notes')
-        .select('*')
-        .order('updated_at', { ascending: false });
+        .from("notes")
+        .select("*")
+        .order("updated_at", { ascending: false });
 
       if (fetchError) throw fetchError;
 
       setNotes(data || []);
-      console.log('✅ Notas carregadas do Supabase:', data?.length || 0);
+      console.log("✅ Notas carregadas do Supabase:", data?.length || 0);
     } catch (err) {
-      console.error('❌ Erro ao carregar notas:', err);
-      setError(err instanceof Error ? err.message : 'Erro ao carregar notas');
-      
+      console.error("❌ Erro ao carregar notas:", err);
+      setError(err instanceof Error ? err.message : "Erro ao carregar notas");
+
       // Fallback para localStorage se Supabase falhar
-      const savedNotes = localStorage.getItem('dashboardNotes');
+      const savedNotes = localStorage.getItem("dashboardNotes");
       if (savedNotes) {
         try {
           const parsedNotes = JSON.parse(savedNotes);
           setNotes(parsedNotes);
-          console.log('📂 Notas carregadas do localStorage como fallback');
+          console.log("📂 Notas carregadas do localStorage como fallback");
         } catch (parseErr) {
-          console.error('❌ Erro ao carregar do localStorage:', parseErr);
+          console.error("❌ Erro ao carregar do localStorage:", parseErr);
         }
       }
     } finally {
@@ -51,124 +51,128 @@ export const useNotes = () => {
 
   const createNote = async (noteData: { title: string; content: string }) => {
     try {
-      console.log('🆕 Criando nova nota:', noteData.title);
+      console.log("🆕 Criando nova nota:", noteData.title);
 
       const { data, error } = await supabase
-        .from('notes')
-        .insert({
+        .from("notes")
+        .insert<{ title: string; content: string }>({
           title: noteData.title,
-          content: noteData.content
-        } as any)
+          content: noteData.content,
+        })
         .select()
         .single();
 
       if (error) throw error;
 
       const newNote = data as Note;
-      setNotes(prev => [newNote, ...prev]);
-      
+      setNotes((prev) => [newNote, ...prev]);
+
       // Também salvar no localStorage como backup
       const updatedNotes = [newNote, ...notes];
-      localStorage.setItem('dashboardNotes', JSON.stringify(updatedNotes));
-      
-      console.log('✅ Nota criada no Supabase:', newNote.id);
+      localStorage.setItem("dashboardNotes", JSON.stringify(updatedNotes));
+
+      console.log("✅ Nota criada no Supabase:", newNote.id);
       return newNote;
     } catch (err) {
-      console.error('❌ Erro ao criar nota:', err);
-      
+      console.error("❌ Erro ao criar nota:", err);
+
       // Fallback para localStorage se Supabase falhar
       const newNote: Note = {
         id: Date.now().toString(),
         ...noteData,
         created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       };
-      
+
       const updatedNotes = [newNote, ...notes];
       setNotes(updatedNotes);
-      localStorage.setItem('dashboardNotes', JSON.stringify(updatedNotes));
-      
-      console.log('📂 Nota salva no localStorage como fallback');
+      localStorage.setItem("dashboardNotes", JSON.stringify(updatedNotes));
+
+      console.log("📂 Nota salva no localStorage como fallback");
       return newNote;
     }
   };
 
-  const updateNote = async (noteId: string, noteData: { title: string; content: string }) => {
+  const updateNote = async (
+    noteId: string,
+    noteData: { title: string; content: string },
+  ) => {
     try {
-      console.log('✏️ Atualizando nota:', noteId);
+      console.log("✏️ Atualizando nota:", noteId);
 
       const { data, error } = await supabase
-        .from('notes')
+        .from("notes")
         .update({
           title: noteData.title,
-          content: noteData.content
+          content: noteData.content,
         })
-        .eq('id', noteId)
+        .eq("id", noteId)
         .select()
         .single();
 
       if (error) throw error;
 
       const updatedNote = data as Note;
-      setNotes(prev => prev.map(note => 
-        note.id === noteId ? updatedNote : note
-      ));
-      
-      // Também atualizar localStorage
-      const updatedNotes = notes.map(note => 
-        note.id === noteId ? updatedNote : note
+      setNotes((prev) =>
+        prev.map((note) => (note.id === noteId ? updatedNote : note)),
       );
-      localStorage.setItem('dashboardNotes', JSON.stringify(updatedNotes));
-      
-      console.log('✅ Nota atualizada no Supabase');
+
+      // Também atualizar localStorage
+      const updatedNotes = notes.map((note) =>
+        note.id === noteId ? updatedNote : note,
+      );
+      localStorage.setItem("dashboardNotes", JSON.stringify(updatedNotes));
+
+      console.log("✅ Nota atualizada no Supabase");
       return updatedNote;
     } catch (err) {
-      console.error('❌ Erro ao atualizar nota:', err);
-      
+      console.error("❌ Erro ao atualizar nota:", err);
+
       // Fallback para localStorage
       const updatedNote = {
-        ...notes.find(n => n.id === noteId),
+        ...notes.find((n) => n.id === noteId),
         ...noteData,
-        updated_at: new Date().toISOString()
+        updated_at: new Date().toISOString(),
       } as Note;
-      
-      const updatedNotes = notes.map(note => 
-        note.id === noteId ? updatedNote : note
+
+      const updatedNotes = notes.map((note) =>
+        note.id === noteId ? updatedNote : note,
       );
       setNotes(updatedNotes);
-      localStorage.setItem('dashboardNotes', JSON.stringify(updatedNotes));
-      
-      throw new Error(err instanceof Error ? err.message : 'Erro ao atualizar nota');
+      localStorage.setItem("dashboardNotes", JSON.stringify(updatedNotes));
+
+      throw new Error(
+        err instanceof Error ? err.message : "Erro ao atualizar nota",
+      );
     }
   };
 
   const deleteNote = async (noteId: string) => {
     try {
-      console.log('🗑️ Deletando nota:', noteId);
+      console.log("🗑️ Deletando nota:", noteId);
 
-      const { error } = await supabase
-        .from('notes')
-        .delete()
-        .eq('id', noteId);
+      const { error } = await supabase.from("notes").delete().eq("id", noteId);
 
       if (error) throw error;
 
-      setNotes(prev => prev.filter(note => note.id !== noteId));
-      
+      setNotes((prev) => prev.filter((note) => note.id !== noteId));
+
       // Também remover do localStorage
-      const updatedNotes = notes.filter(note => note.id !== noteId);
-      localStorage.setItem('dashboardNotes', JSON.stringify(updatedNotes));
-      
-      console.log('✅ Nota deletada do Supabase');
+      const updatedNotes = notes.filter((note) => note.id !== noteId);
+      localStorage.setItem("dashboardNotes", JSON.stringify(updatedNotes));
+
+      console.log("✅ Nota deletada do Supabase");
     } catch (err) {
-      console.error('❌ Erro ao deletar nota:', err);
-      
+      console.error("❌ Erro ao deletar nota:", err);
+
       // Fallback para localStorage
-      const updatedNotes = notes.filter(note => note.id !== noteId);
+      const updatedNotes = notes.filter((note) => note.id !== noteId);
       setNotes(updatedNotes);
-      localStorage.setItem('dashboardNotes', JSON.stringify(updatedNotes));
-      
-      throw new Error(err instanceof Error ? err.message : 'Erro ao deletar nota');
+      localStorage.setItem("dashboardNotes", JSON.stringify(updatedNotes));
+
+      throw new Error(
+        err instanceof Error ? err.message : "Erro ao deletar nota",
+      );
     }
   };
 
@@ -183,6 +187,6 @@ export const useNotes = () => {
     createNote,
     updateNote,
     deleteNote,
-    refetch: fetchNotes
+    refetch: fetchNotes,
   };
 };

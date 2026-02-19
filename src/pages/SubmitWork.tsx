@@ -345,24 +345,47 @@ const SubmitWork: React.FC = () => {
     try {
       console.log('📤 ENVIANDO TRABALHO para pasta:', folder.name);
 
-      // Criar nova submissão com dados mais robustos
+      // Upload do arquivo ao Supabase Storage (se disponível)
+      let fileUrl = `#${formData.file.name}`;
+
+      if (import.meta.env.VITE_SUPABASE_URL) {
+        const fileExt = formData.file.name.split('.').pop();
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+        const filePath = `${folder.id}/${fileName}`;
+
+        const { error: uploadError } = await supabase.storage
+          .from('student-submissions')
+          .upload(filePath, formData.file);
+
+        if (uploadError) {
+          console.error('❌ Erro no upload:', uploadError);
+          throw new Error('Erro ao enviar arquivo. Tente novamente.');
+        }
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('student-submissions')
+          .getPublicUrl(filePath);
+
+        fileUrl = publicUrl;
+        console.log('✅ Arquivo enviado ao Storage:', fileUrl);
+      }
+
       const newSubmission = {
         id: Date.now().toString(),
         folder_id: folder.id,
         student_name: formData.studentName,
         student_email: formData.studentEmail,
         file_name: formData.file.name,
-        file_url: `#${formData.file.name}`, // Identificador único
+        file_url: fileUrl,
         file_size: formData.file.size,
         submitted_at: new Date().toISOString(),
-        // Adicionar campo de matrícula que estava faltando
         student_registration: formData.studentRegistration
       };
 
       console.log('✅ Submissão criada:', newSubmission.student_name);
 
-      // Tentar salvar no Supabase primeiro, depois localStorage
-      if (supabase && import.meta.env.VITE_SUPABASE_URL) {
+      // Salvar metadados no Supabase ou localStorage
+      if (import.meta.env.VITE_SUPABASE_URL) {
         await saveToSupabase(newSubmission);
       } else {
         await saveToLocalStorage(newSubmission);

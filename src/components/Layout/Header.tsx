@@ -9,7 +9,7 @@ interface HeaderProps {
 }
 
 const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
-  const { user, signOut } = useAuth();
+  const { user, profile, isAdmin, signOut } = useAuth();
   const navigate = useNavigate();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
 
@@ -47,7 +47,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
               className="w-8 h-8 bg-gradient-to-br from-blue-600 to-blue-700 rounded-full flex items-center justify-center hover:shadow-lg transition-all"
             >
               <span className="text-white font-medium text-sm">
-                {user?.email?.charAt(0).toUpperCase() || 'A'}
+                {profile?.display_name?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || 'A'}
               </span>
             </button>
 
@@ -57,7 +57,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
                   <p className="text-sm font-medium text-gray-900">
                     {user?.email || 'Usuário'}
                   </p>
-                  <p className="text-xs text-gray-500">Administrador</p>
+                  <p className="text-xs text-gray-500">{isAdmin ? 'Administrador' : 'Professor'}</p>
                 </div>
                 
                 <button

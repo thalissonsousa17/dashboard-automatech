@@ -1,12 +1,9 @@
-import React, { useState } from "react";
-//import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from "react";
 import { useAuth } from "../../contexts/AuthContext";
-import { Lock, Mail, Eye, EyeOff } from "lucide-react";
-
-//import { UserPlus, Home } from 'lucide-react';
+import { supabase } from "../../lib/supabase";
+import { Lock, Mail, Eye, EyeOff, UserPlus, Shield } from "lucide-react";
 
 const LoginForm: React.FC = () => {
-  //const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -14,45 +11,106 @@ const LoginForm: React.FC = () => {
   const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [adminCode, setAdminCode] = useState("");
+  const [adminExists, setAdminExists] = useState<boolean>(false);
+  const [checkingAdmin, setCheckingAdmin] = useState(true);
 
   const { signIn, signUp } = useAuth();
+
+  // Verificar se já existe um admin cadastrado
+  useEffect(() => {
+    const checkAdminExists = async () => {
+      try {
+        const { count, error } = await supabase
+          .from("profiles")
+          .select("*", { count: "exact", head: true })
+          .eq("role", "admin");
+
+        if (!error) {
+          setAdminExists((count ?? 0) > 0);
+        }
+      } catch (err) {
+        console.error("Erro ao verificar admin:", err);
+        setAdminExists(false);
+      } finally {
+        setCheckingAdmin(false);
+      }
+    };
+
+    checkAdminExists();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
 
-    if (isSignUp && password !== confirmPassword) {
-      setError("As senhas não coincidem");
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const { error } = isSignUp
-        ? await signUp(email, password)
-        : await signIn(email, password);
-
-      if (error) {
-        setError(
-          error.message ||
-            (isSignUp ? "Erro ao criar conta" : "Erro ao fazer login")
-        );
-        console.log(error);
-      } else if (isSignUp) {
-        setError("");
-        alert("Conta criada com sucesso! Faça login para continuar.");
-        setIsSignUp(false);
+    if (isSignUp) {
+      // Validação de senhas
+      if (password !== confirmPassword) {
+        setError("As senhas não coincidem");
+        setLoading(false);
+        return;
       }
-    } catch (err) {
-      console.log(err);
-      setError(
-        isSignUp
-          ? "Erro ao criar conta. Tente novamente."
-          : "Erro ao fazer login. Tente novamente."
-      );
-    } finally {
-      setLoading(false);
+
+      if (password.length < 6) {
+        setError("A senha deve ter pelo menos 6 caracteres");
+        setLoading(false);
+        return;
+      }
+
+      // Determinar role baseado no código admin
+      let role = "professor";
+      if (adminCode.trim() !== "") {
+        if (adminCode !== import.meta.env.VITE_ADMIN_CODE) {
+          setError("Código de administrador inválido");
+          setLoading(false);
+          return;
+        }
+        if (adminExists) {
+          setError("Já existe um administrador cadastrado no sistema");
+          setLoading(false);
+          return;
+        }
+        role = "admin";
+      }
+
+      try {
+        const { error } = await signUp(email, password, role);
+        if (error) {
+          setError(error.message || "Erro ao criar conta");
+        } else {
+          setError("");
+          alert(
+            role === "admin"
+              ? "Conta de Administrador criada com sucesso! Verifique seu email e faça login."
+              : "Conta criada com sucesso! Verifique seu email e faça login."
+          );
+          setIsSignUp(false);
+          setAdminCode("");
+          if (role === "admin") {
+            setAdminExists(true);
+          }
+        }
+      } catch (err) {
+        console.error(err);
+        setError("Erro ao criar conta. Tente novamente.");
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      // Login
+      try {
+        const { error } = await signIn(email, password);
+        if (error) {
+          setError(error.message || "Erro ao fazer login");
+        }
+      } catch (err) {
+        console.error(err);
+        setError("Erro ao fazer login. Tente novamente.");
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -71,13 +129,6 @@ const LoginForm: React.FC = () => {
                 <p className="text-xs text-gray-500">Plataforma Educacional</p>
               </div>
             </div>
-            {/* <button
-              onClick={() => navigate('/')}
-              className="flex items-center space-x-2 bg-gradient-to-br from-green-700 to-blue-800 text-white hover:bg-gradient-to-br  hover:text-white px-3 py-2 rounded-lg hover:bg-gray-100 transition-all"
-            >
-              <Home className="w-4 h-4" />
-              <span className="font-medium">Home</span>
-            </button> */}
           </div>
         </div>
       </header>
@@ -90,7 +141,7 @@ const LoginForm: React.FC = () => {
               <span className="text-white font-bold text-xl">A</span>
             </div>
             <h1 className="text-2xl font-bold text-gray-900">
-              Automatech Admin
+              {isSignUp ? "Criar Conta" : "Automatech"}
             </h1>
             <p className="text-gray-600 mt-2">
               {isSignUp
@@ -100,7 +151,7 @@ const LoginForm: React.FC = () => {
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-5">
             {error && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-3">
                 <p className="text-red-800 text-sm">{error}</p>
@@ -176,6 +227,31 @@ const LoginForm: React.FC = () => {
                 </div>
               </div>
             )}
+
+            {/* Campo de Código Admin - só aparece se não existe admin ainda */}
+            {isSignUp && !adminExists && !checkingAdmin && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Código de Administrador (opcional)
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Shield className="h-5 w-5 text-amber-500" />
+                  </div>
+                  <input
+                    type="password"
+                    value={adminCode}
+                    onChange={(e) => setAdminCode(e.target.value)}
+                    className="w-full pl-10 pr-4 py-3 border border-amber-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors bg-amber-50"
+                    placeholder="Deixe vazio para conta de professor"
+                  />
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Apenas insira o código se você é o administrador do sistema.
+                </p>
+              </div>
+            )}
+
             <button
               type="submit"
               disabled={loading}
@@ -201,6 +277,7 @@ const LoginForm: React.FC = () => {
                 setEmail("");
                 setPassword("");
                 setConfirmPassword("");
+                setAdminCode("");
               }}
               className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center justify-center mx-auto"
             >
@@ -211,8 +288,8 @@ const LoginForm: React.FC = () => {
                 </>
               ) : (
                 <>
-                  {/* <UserPlus className="w-4 h-4 mr-2" />
-                  Não tem conta? Crie uma */}
+                  <UserPlus className="w-4 h-4 mr-2" />
+                  Não tem conta? Crie uma
                 </>
               )}
             </button>
