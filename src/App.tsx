@@ -21,6 +21,11 @@ import MyProfile from "./pages/MyProfile";
 import AdminDashboard from "./pages/AdminDashboard";
 import FloatingAssistant from "./components/AI/FloatingAssistant";
 import AdminRoute from "./components/Auth/AdminRoute";
+import ExamGenerator from "./pages/ExamGenerator";
+import WorkspacePage from "./modules/workspace/pages/WorkspacePage";
+import ExamEditorPage from "./modules/editor/pages/ExamEditorPage";
+import DocumentsPage from "./modules/editor/pages/DocumentsPage";
+import StandaloneEditorPage from "./modules/editor/pages/StandaloneEditorPage";
 
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({
   children,
@@ -76,6 +81,15 @@ const AppRoutes: React.FC = () => {
                   element={<StudentSubmissionsWithAssistant />}
                 />
                 <Route path="/ai-assistant" element={<AIAssistant />} />
+                <Route path="/gerador-provas" element={<ExamGenerator />} />
+                {/* Premium: Workspaces, Pastas, Editor */}
+                <Route path="/workspaces" element={<WorkspacePage />} />
+                <Route path="/workspaces/:workspaceId" element={<WorkspacePage />} />
+                <Route path="/workspaces/:workspaceId/folder/:folderId" element={<WorkspacePage />} />
+                <Route path="/editor/:examId" element={<ExamEditorPage />} />
+                {/* Editor de Documentos Standalone */}
+                <Route path="/documents" element={<DocumentsPage />} />
+                <Route path="/documents/:docId" element={<StandaloneEditorPage />} />
                 <Route path="/meu-perfil" element={<MyProfile />} />
                 <Route
                   path="/admin"

@@ -20,7 +20,7 @@ export class OpenAIService {
       const body: Record<string, unknown> = {
         model: "gpt-4o-mini",
         messages,
-        max_tokens: 1500,
+        max_tokens: 4096,
         temperature: 0.7,
       };
 
@@ -43,7 +43,17 @@ export class OpenAIService {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         console.error("OpenAI API error:", response.status, errorData);
-        throw new Error(`Erro na API do OpenAI: ${response.status}`);
+        const detail =
+          errorData?.error?.message || errorData?.error?.code || "";
+        let userMsg = `Erro na API OpenAI (${response.status})`;
+        if (response.status === 401)
+          userMsg += ": Chave API inválida ou expirada";
+        else if (response.status === 429)
+          userMsg += ": Limite de requisições atingido. Aguarde e tente novamente";
+        else if (response.status === 402 || response.status === 403)
+          userMsg += ": Sem créditos ou acesso negado. Verifique seu plano OpenAI";
+        else if (detail) userMsg += `: ${detail}`;
+        throw new Error(userMsg);
       }
 
       const data = await response.json();

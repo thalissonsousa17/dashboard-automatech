@@ -44,20 +44,44 @@ const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
           <div className="relative">
             <button
               onClick={() => setShowProfileMenu(!showProfileMenu)}
-              className="w-8 h-8 bg-gradient-to-br from-blue-600 to-blue-700 rounded-full flex items-center justify-center hover:shadow-lg transition-all"
+              className="w-9 h-9 rounded-full overflow-hidden flex items-center justify-center hover:shadow-lg transition-all ring-2 ring-transparent hover:ring-blue-300"
             >
-              <span className="text-white font-medium text-sm">
-                {profile?.display_name?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || 'A'}
-              </span>
+              {profile?.avatar_url ? (
+                <img
+                  src={profile.avatar_url}
+                  alt={profile.display_name || 'Avatar'}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center">
+                  <span className="text-white font-medium text-sm">
+                    {profile?.display_name?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || 'A'}
+                  </span>
+                </div>
+              )}
             </button>
 
             {showProfileMenu && (
               <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
-                <div className="px-4 py-2 border-b border-gray-100">
-                  <p className="text-sm font-medium text-gray-900">
-                    {user?.email || 'Usuário'}
-                  </p>
-                  <p className="text-xs text-gray-500">{isAdmin ? 'Administrador' : 'Professor'}</p>
+                <div className="px-4 py-3 border-b border-gray-100 flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full overflow-hidden flex-shrink-0">
+                    {profile?.avatar_url ? (
+                      <img src={profile.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center">
+                        <span className="text-white font-medium text-xs">
+                          {profile?.display_name?.charAt(0).toUpperCase() || user?.email?.charAt(0).toUpperCase() || 'A'}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-gray-900 truncate">
+                      {profile?.display_name || user?.email?.split('@')[0] || 'Usuário'}
+                    </p>
+                    <p className="text-xs text-gray-400 truncate">{user?.email}</p>
+                    <p className="text-xs text-blue-600 font-medium">{isAdmin ? 'Administrador' : 'Professor'}</p>
+                  </div>
                 </div>
                 
                 <button

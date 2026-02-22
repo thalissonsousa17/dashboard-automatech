@@ -1,3 +1,168 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ── Tiptap / Editor Word-like ──────────────────────────────── */
+
+/* Placeholder */
+.tiptap p.is-editor-empty:first-child::before {
+  color: #adb5bd;
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+/* Tipografia base da página */
+.tiptap {
+  font-family: 'Calibri', 'Segoe UI', sans-serif;
+}
+
+.tiptap h1 {
+  font-size: 2em;
+  font-weight: 700;
+  line-height: 1.25;
+  margin-top: 0.5em;
+  margin-bottom: 0.3em;
+  color: #1a1a1a;
+}
+
+.tiptap h2 {
+  font-size: 1.5em;
+  font-weight: 600;
+  line-height: 1.3;
+  margin-top: 0.5em;
+  margin-bottom: 0.25em;
+  color: #1a1a1a;
+}
+
+.tiptap h3 {
+  font-size: 1.2em;
+  font-weight: 600;
+  line-height: 1.35;
+  margin-top: 0.4em;
+  margin-bottom: 0.2em;
+  color: #1a1a1a;
+}
+
+.tiptap p {
+  margin-bottom: 0.6em;
+  line-height: 1.6;
+}
+
+.tiptap ul,
+.tiptap ol {
+  padding-left: 1.5em;
+  margin-bottom: 0.6em;
+}
+
+.tiptap ul li,
+.tiptap ol li {
+  margin-bottom: 0.2em;
+  line-height: 1.6;
+}
+
+.tiptap ul {
+  list-style-type: disc;
+}
+
+.tiptap ol {
+  list-style-type: decimal;
+}
+
+.tiptap strong {
+  font-weight: 700;
+}
+
+.tiptap em {
+  font-style: italic;
+}
+
+.tiptap u {
+  text-decoration: underline;
+}
+
+.tiptap s {
+  text-decoration: line-through;
+}
+
+.tiptap hr {
+  border: none;
+  border-top: 1px solid #d1d1d1;
+  margin: 1em 0;
+}
+
+/* ── Tabelas (estilo Word) ──────────────────────────────────── */
+
+.tiptap table {
+  border-collapse: collapse;
+  table-layout: fixed;
+  width: 100%;
+  margin: 1em 0;
+  overflow: hidden;
+}
+
+.tiptap table td,
+.tiptap table th {
+  min-width: 1em;
+  border: 1px solid #c0c0c0;
+  padding: 6px 10px;
+  vertical-align: top;
+  box-sizing: border-box;
+  position: relative;
+  font-size: 11pt;
+  line-height: 1.5;
+}
+
+.tiptap table th {
+  background-color: #e9ecef;
+  font-weight: 600;
+  text-align: left;
+}
+
+/* Célula selecionada */
+.tiptap table .selectedCell::after {
+  background: rgba(43, 87, 154, 0.12);
+  content: '';
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  pointer-events: none;
+  position: absolute;
+  z-index: 2;
+}
+
+/* Coluna com foco */
+.tiptap table .column-resize-handle {
+  background-color: #2B579A;
+  bottom: -2px;
+  pointer-events: none;
+  position: absolute;
+  right: -2px;
+  top: 0;
+  width: 3px;
+}
+
+/* Wrapper de resize */
+.tiptap .tableWrapper {
+  overflow-x: auto;
+  margin: 1em 0;
+}
+
+.tiptap .resize-cursor {
+  cursor: col-resize;
+}
+
+/* ── Imagens ────────────────────────────────────────────────── */
+
+.tiptap img {
+  max-width: 100%;
+  height: auto;
+  margin: 0.5em 0;
+  display: block;
+}
+
+.tiptap img.ProseMirror-selectednode {
+  outline: 2px solid #2B579A;
+}

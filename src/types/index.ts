@@ -54,3 +54,82 @@ export interface SubmissionFolder {
   created_at: string;
   submissions_count: number;
 }
+
+// =============================================
+// MÓDULO DE GERAÇÃO DE PROVAS COM IA
+// =============================================
+
+export type QuestionType = 'multiple_choice' | 'essay' | 'mixed';
+export type Difficulty = 'easy' | 'medium' | 'hard';
+export type ExamStatus = 'draft' | 'generated' | 'reviewed' | 'finalized';
+
+export interface ExamAlternative {
+  letter: string;
+  text: string;
+}
+
+export interface ExamQuestion {
+  id: string;
+  exam_id: string;
+  question_number: number;
+  question_type: 'multiple_choice' | 'essay';
+  statement: string;
+  alternatives: ExamAlternative[];
+  correct_answer: string | null;
+  explanation: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Exam {
+  id: string;
+  title: string;
+  subject: string;
+  question_count: number;
+  question_type: QuestionType;
+  difficulty: Difficulty;
+  reference_material: string | null;
+  mixed_mc_count: number | null;
+  mixed_essay_count: number | null;
+  status: ExamStatus;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  questions?: ExamQuestion[];
+}
+
+export interface ExamVersion {
+  id: string;
+  exam_id: string;
+  version_label: string;
+  question_order: number[];
+  alternatives_order: Record<string, string[]>;
+  qr_code_data: string | null;
+  created_at: string;
+}
+
+export interface ExamAnswerKey {
+  id: string;
+  exam_id: string;
+  version_id: string;
+  answers: Record<string, string>;
+  created_at: string;
+}
+
+export interface CreateExamInput {
+  title: string;
+  subject: string;
+  question_count: number;
+  question_type: QuestionType;
+  difficulty: Difficulty;
+  reference_material?: string;
+  mixed_mc_count?: number;
+  mixed_essay_count?: number;
+  // Generation options (used for AI prompt only, not stored in DB)
+  difficulty_levels?: Difficulty[];
+  question_style?: 'contextualizada' | 'simples';
+  mc_style?: 'contextualizada' | 'simples';
+  essay_style?: 'contextualizada' | 'simples';
+  mc_difficulty_levels?: Difficulty[];
+  essay_difficulty_levels?: Difficulty[];
+}

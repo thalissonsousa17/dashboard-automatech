@@ -11,6 +11,10 @@ import {
   BookOpen,
   Shield,
   FileText,
+  Brain,
+  FolderOpen,
+  FileEdit,
+  User,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 
@@ -19,44 +23,73 @@ interface SidebarProps {
   onToggle: () => void;
 }
 
+interface NavItem {
+  to: string;
+  icon: React.ElementType;
+  label: string;
+  url?: string;
+}
+
+interface NavSection {
+  label?: string;
+  items: NavItem[];
+}
+
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
-  const { signOut, isAdmin } = useAuth();
+  const { signOut, isAdmin, user, profile } = useAuth();
 
-  interface NavItem {
-    to: string;
-    icon: React.ElementType;
-    label: string;
-    url?: string;
-  }
-
-  const navItems: NavItem[] = [
-    { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+  const sections: NavSection[] = [
     {
-      to: "/dashboard/publicar-post",
-      icon: Plus,
-      label: "Publicar no Espaço Docente",
-    },
-    { to: "/dashboard/espaco-docente", icon: Globe, label: "Espaço Docente" },
-    {
-      to: "/dashboard/student-submissions",
-      icon: FileText,
-      label: "Trabalhos dos Alunos",
+      items: [
+        { to: "/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+      ],
     },
     {
-      to: "/dashboard/qr-chamada",
-      icon: QrCodeIcon,
-      label: "QR Chamada",
-      url: "https://qrchamada.automatech.app.br/login",
+      label: "CONTEÚDO",
+      items: [
+        { to: "/dashboard/publicar-post", icon: Plus, label: "Publicar Material" },
+        { to: "/dashboard/espaco-docente", icon: Globe, label: "Espaço Docente" },
+        { to: "/dashboard/student-submissions", icon: FileText, label: "Trabalhos dos Alunos" },
+      ],
     },
-    // Item exclusivo do admin
+    {
+      label: "FERRAMENTAS",
+      items: [
+        { to: "/dashboard/gerador-provas", icon: Brain, label: "Gerador de Provas IA" },
+        { to: "/dashboard/workspaces", icon: FolderOpen, label: "Minhas Provas" },
+        { to: "/dashboard/documents", icon: FileEdit, label: "Editor de Documentos" },
+        {
+          to: "/dashboard/qr-chamada",
+          icon: QrCodeIcon,
+          label: "QR Chamada",
+          url: "https://qrchamada.automatech.app.br/login",
+        },
+      ],
+    },
     ...(isAdmin
-      ? [{ to: "/dashboard/admin", icon: Shield, label: "Painel Admin" }]
+      ? [
+          {
+            label: "SISTEMA",
+            items: [
+              { to: "/dashboard/admin", icon: Shield, label: "Painel Admin" },
+            ],
+          },
+        ]
       : []),
   ];
 
+  const displayName =
+    profile?.display_name || user?.email?.split("@")[0] || "Professor";
+  const role = isAdmin ? "Administrador" : "Professor";
+  const initial = displayName.charAt(0).toUpperCase();
+
+  const closeOnMobile = () => {
+    if (window.innerWidth < 1024) onToggle();
+  };
+
   return (
     <>
-      {/* Overlay transparente para dispositivos móveis */}
+      {/* Mobile overlay */}
       {isOpen && (
         <div
           className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
@@ -67,80 +100,112 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
       {/* Sidebar */}
       <div
         className={`
-        fixed top-0 left-0 h-full w-64 bg-white border-r border-gray-300 z-50 transform transition-transform duration-300 ease-in-out
-        ${isOpen ? "translate-x-0" : "-translate-x-full"}
-        lg:translate-x-0 lg:static lg:z-auto
-      `}
+          fixed top-0 left-0 h-full w-64 bg-white border-r border-gray-200 z-50
+          transform transition-transform duration-300 ease-in-out flex flex-col
+          ${isOpen ? "translate-x-0" : "-translate-x-full"}
+          lg:translate-x-0 lg:relative lg:z-20
+        `}
       >
-        {/* Header do Sidebar */}
-        <div className="flex items-center justify-between  border-b border-gray-200">
-          <div className="flex px-5 py-5 items-center space-x-2">
-            <div className="w-10 h-10  bg-gradient-to-br from-blue-600 to-green-700 rounded-xl flex items-center justify-center">
-              <BookOpen className="w-6 h-6 text-white" />
+        {/* Logo */}
+        <div className="flex items-center justify-between px-5 py-5 border-b border-gray-200 flex-shrink-0">
+          <div className="flex items-center space-x-2.5">
+            <div className="w-9 h-9 bg-gradient-to-br from-blue-600 to-green-600 rounded-xl flex items-center justify-center">
+              <BookOpen className="w-5 h-5 text-white" />
             </div>
-            {/* <img
-              className="rounded-full w-20 h-20 p-5 z-40"
-              src="/assets/automatech-logo.png"
-              alt="Logo"
-            ></img> */}
-            <span className="text-xl font-extrabold bg-gradient-to-r from-blue-800  to-green-800 bg-clip-text text-transparent">
+            <span className="text-lg font-extrabold bg-gradient-to-r from-blue-700 to-green-700 bg-clip-text text-transparent">
               AUTOMATECH
             </span>
           </div>
-          {/* Botão de fechar para dispositivos móveis */}
           <button
             onClick={onToggle}
-            className="lg:hidden p-1 rounded-md hover:bg-gray-100"
+            className="lg:hidden p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4 text-gray-500" />
           </button>
         </div>
 
-        {/* Navegação */}
-        <nav className="flex-1 px-4 py-6 space-y-2">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            return item.url ? (
-              // Link externo
-              <a
-                key={item.to}
-                href={item.url}
-                target="_self"
-                rel="noopener noreferrer"
-                className="flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-              >
-                <Icon className="w-5 h-5" />
-                <span>{item.label}</span>
-              </a>
-            ) : (
-              // Link interno
-              <NavLink
-                key={item.to}
-                to={item.to}
-                onClick={() => window.innerWidth < 1024 && onToggle()}
-                className={({ isActive }) => `
-                  flex items-center space-x-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors
-                  ${
-                    isActive
-                      ? "bg-blue-50 text-blue-700 border-r-2 border-blue-600"
-                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                  }
-                `}
-              >
-                <Icon className="w-5 h-5" />
-                <span>{item.label}</span>
-              </NavLink>
-            );
-          })}
+        {/* Navigation */}
+        <nav className="flex-1 overflow-y-auto px-3 py-4">
+          {sections.map((section, si) => (
+            <div key={si} className={si > 0 ? "mt-5" : ""}>
+              {section.label && (
+                <p className="px-3 mb-2 text-[10px] font-semibold text-gray-400 uppercase tracking-widest">
+                  {section.label}
+                </p>
+              )}
+              <div className="space-y-0.5">
+                {section.items.map((item) => {
+                  const Icon = item.icon;
+                  return item.url ? (
+                    <a
+                      key={item.to}
+                      href={item.url}
+                      target="_self"
+                      rel="noopener noreferrer"
+                      onClick={closeOnMobile}
+                      className="flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                    >
+                      <Icon className="w-4 h-4 flex-shrink-0" />
+                      <span>{item.label}</span>
+                    </a>
+                  ) : (
+                    <NavLink
+                      key={item.to}
+                      to={item.to}
+                      end={item.to === "/dashboard"}
+                      onClick={closeOnMobile}
+                      className={({ isActive }) =>
+                        `flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                          isActive
+                            ? "bg-blue-50 text-blue-700"
+                            : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                        }`
+                      }
+                    >
+                      {({ isActive }) => (
+                        <>
+                          <Icon
+                            className={`w-4 h-4 flex-shrink-0 ${
+                              isActive ? "text-blue-600" : ""
+                            }`}
+                          />
+                          <span>{item.label}</span>
+                        </>
+                      )}
+                    </NavLink>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
 
-        {/* Rodapé do Sidebar */}
-        <div className="p-4 border-t border-gray-200">
+        {/* User profile + logout footer */}
+        <div className="flex-shrink-0 border-t border-gray-200 p-3">
+          {/* User info */}
+          <NavLink
+            to="/dashboard/meu-perfil"
+            onClick={closeOnMobile}
+            className="flex items-center space-x-3 px-3 py-2.5 rounded-lg hover:bg-gray-50 transition-colors group mb-1"
+          >
+            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+              <span className="text-white text-xs font-semibold">{initial}</span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-gray-900 truncate">
+                {displayName}
+              </p>
+              <p className="text-xs text-gray-400">{role}</p>
+            </div>
+            <User className="w-3.5 h-3.5 text-gray-300 group-hover:text-gray-500 transition-colors" />
+          </NavLink>
+
+          {/* Logout */}
           <button
             onClick={signOut}
-            className="flex items-center space-x-3 px-3 py-2.5 w-full rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+            className="flex items-center space-x-3 px-3 py-2 w-full rounded-lg text-sm font-medium text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors"
           >
-            <LogOut className="w-5 h-5" />
+            <LogOut className="w-4 h-4" />
             <span>Sair</span>
           </button>
         </div>

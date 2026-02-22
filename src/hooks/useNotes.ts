@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
+import { useAuth } from "./useAuth";
 
 export interface Note {
   id: string;
@@ -11,11 +12,17 @@ export interface Note {
 }
 
 export const useNotes = () => {
+  const { user } = useAuth();
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchNotes = async () => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
@@ -23,25 +30,23 @@ export const useNotes = () => {
       const { data, error: fetchError } = await supabase
         .from("notes")
         .select("*")
+        .eq("user_id", user.id)
         .order("updated_at", { ascending: false });
 
       if (fetchError) throw fetchError;
 
       setNotes(data || []);
-      console.log("✅ Notas carregadas do Supabase:", data?.length || 0);
     } catch (err) {
-      console.error("❌ Erro ao carregar notas:", err);
+      console.error("Erro ao carregar notas:", err);
       setError(err instanceof Error ? err.message : "Erro ao carregar notas");
 
-      // Fallback para localStorage se Supabase falhar
-      const savedNotes = localStorage.getItem("dashboardNotes");
-      if (savedNotes) {
+      // Fallback localStorage se Supabase falhar
+      const saved = localStorage.getItem(`notes_${user.id}`);
+      if (saved) {
         try {
-          const parsedNotes = JSON.parse(savedNotes);
-          setNotes(parsedNotes);
-          console.log("📂 Notas carregadas do localStorage como fallback");
-        } catch (parseErr) {
-          console.error("❌ Erro ao carregar do localStorage:", parseErr);
+          setNotes(JSON.parse(saved));
+        } catch {
+          // ignore parse errors
         }
       }
     } finally {
@@ -50,14 +55,15 @@ export const useNotes = () => {
   };
 
   const createNote = async (noteData: { title: string; content: string }) => {
-    try {
-      console.log("🆕 Criando nova nota:", noteData.title);
+    if (!user) throw new Error("Usuário não autenticado");
 
+    try {
       const { data, error } = await supabase
         .from("notes")
-        .insert<{ title: string; content: string }>({
+        .insert({
           title: noteData.title,
           content: noteData.content,
+          user_id: user.id,
         })
         .select()
         .single();
@@ -65,30 +71,29 @@ export const useNotes = () => {
       if (error) throw error;
 
       const newNote = data as Note;
-      setNotes((prev) => [newNote, ...prev]);
-
-      // Também salvar no localStorage como backup
-      const updatedNotes = [newNote, ...notes];
-      localStorage.setItem("dashboardNotes", JSON.stringify(updatedNotes));
-
-      console.log("✅ Nota criada no Supabase:", newNote.id);
+      setNotes((prev) => {
+        const updated = [newNote, ...prev];
+        localStorage.setItem(`notes_${user.id}`, JSON.stringify(updated));
+        return updated;
+      });
       return newNote;
     } catch (err) {
-      console.error("❌ Erro ao criar nota:", err);
+      console.error("Erro ao criar nota:", err);
 
-      // Fallback para localStorage se Supabase falhar
+      // Fallback localStorage
       const newNote: Note = {
-        id: Date.now().toString(),
+        id: `local_${Date.now()}`,
         ...noteData,
+        user_id: user.id,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
 
-      const updatedNotes = [newNote, ...notes];
-      setNotes(updatedNotes);
-      localStorage.setItem("dashboardNotes", JSON.stringify(updatedNotes));
-
-      console.log("📂 Nota salva no localStorage como fallback");
+      setNotes((prev) => {
+        const updated = [newNote, ...prev];
+        localStorage.setItem(`notes_${user.id}`, JSON.stringify(updated));
+        return updated;
+      });
       return newNote;
     }
   };
@@ -97,9 +102,9 @@ export const useNotes = () => {
     noteId: string,
     noteData: { title: string; content: string },
   ) => {
-    try {
-      console.log("✏️ Atualizando nota:", noteId);
+    if (!user) throw new Error("Usuário não autenticado");
 
+    try {
       const { data, error } = await supabase
         .from("notes")
         .update({
@@ -107,78 +112,72 @@ export const useNotes = () => {
           content: noteData.content,
         })
         .eq("id", noteId)
+        .eq("user_id", user.id)
         .select()
         .single();
 
       if (error) throw error;
 
       const updatedNote = data as Note;
-      setNotes((prev) =>
-        prev.map((note) => (note.id === noteId ? updatedNote : note)),
-      );
-
-      // Também atualizar localStorage
-      const updatedNotes = notes.map((note) =>
-        note.id === noteId ? updatedNote : note,
-      );
-      localStorage.setItem("dashboardNotes", JSON.stringify(updatedNotes));
-
-      console.log("✅ Nota atualizada no Supabase");
+      setNotes((prev) => {
+        const updated = prev.map((n) => (n.id === noteId ? updatedNote : n));
+        localStorage.setItem(`notes_${user.id}`, JSON.stringify(updated));
+        return updated;
+      });
       return updatedNote;
     } catch (err) {
-      console.error("❌ Erro ao atualizar nota:", err);
+      console.error("Erro ao atualizar nota:", err);
 
-      // Fallback para localStorage
-      const updatedNote = {
-        ...notes.find((n) => n.id === noteId),
-        ...noteData,
-        updated_at: new Date().toISOString(),
-      } as Note;
+      // Fallback localStorage
+      setNotes((prev) => {
+        const updated = prev.map((n) =>
+          n.id === noteId
+            ? { ...n, ...noteData, updated_at: new Date().toISOString() }
+            : n,
+        );
+        localStorage.setItem(`notes_${user.id}`, JSON.stringify(updated));
+        return updated;
+      });
 
-      const updatedNotes = notes.map((note) =>
-        note.id === noteId ? updatedNote : note,
-      );
-      setNotes(updatedNotes);
-      localStorage.setItem("dashboardNotes", JSON.stringify(updatedNotes));
-
-      throw new Error(
-        err instanceof Error ? err.message : "Erro ao atualizar nota",
-      );
+      throw err;
     }
   };
 
   const deleteNote = async (noteId: string) => {
-    try {
-      console.log("🗑️ Deletando nota:", noteId);
+    if (!user) throw new Error("Usuário não autenticado");
 
-      const { error } = await supabase.from("notes").delete().eq("id", noteId);
+    try {
+      const { error } = await supabase
+        .from("notes")
+        .delete()
+        .eq("id", noteId)
+        .eq("user_id", user.id);
 
       if (error) throw error;
 
-      setNotes((prev) => prev.filter((note) => note.id !== noteId));
-
-      // Também remover do localStorage
-      const updatedNotes = notes.filter((note) => note.id !== noteId);
-      localStorage.setItem("dashboardNotes", JSON.stringify(updatedNotes));
-
-      console.log("✅ Nota deletada do Supabase");
+      setNotes((prev) => {
+        const updated = prev.filter((n) => n.id !== noteId);
+        localStorage.setItem(`notes_${user.id}`, JSON.stringify(updated));
+        return updated;
+      });
     } catch (err) {
-      console.error("❌ Erro ao deletar nota:", err);
+      console.error("Erro ao deletar nota:", err);
 
-      // Fallback para localStorage
-      const updatedNotes = notes.filter((note) => note.id !== noteId);
-      setNotes(updatedNotes);
-      localStorage.setItem("dashboardNotes", JSON.stringify(updatedNotes));
+      // Fallback localStorage
+      setNotes((prev) => {
+        const updated = prev.filter((n) => n.id !== noteId);
+        localStorage.setItem(`notes_${user.id}`, JSON.stringify(updated));
+        return updated;
+      });
 
-      throw new Error(
-        err instanceof Error ? err.message : "Erro ao deletar nota",
-      );
+      throw err;
     }
   };
 
   useEffect(() => {
     fetchNotes();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   return {
     notes,

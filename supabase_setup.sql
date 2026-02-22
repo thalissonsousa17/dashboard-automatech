@@ -242,7 +242,85 @@ CREATE TRIGGER update_submissions_count_trigger
     AFTER INSERT OR DELETE ON public.student_submissions
     FOR EACH ROW EXECUTE FUNCTION update_submissions_count();
 
+-- =============================================
+-- MÓDULO DE GERAÇÃO DE PROVAS COM IA
+-- =============================================
+
+-- [PROVAS] - Prova principal criada pelo professor
+CREATE TABLE IF NOT EXISTS public.exams (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    title text NOT NULL,
+    subject text NOT NULL,
+    question_count integer NOT NULL DEFAULT 10,
+    question_type text NOT NULL DEFAULT 'multiple_choice' CHECK (question_type IN ('multiple_choice', 'essay', 'mixed')),
+    difficulty text NOT NULL DEFAULT 'medium' CHECK (difficulty IN ('easy', 'medium', 'hard')),
+    reference_material text,
+    mixed_mc_count integer,
+    mixed_essay_count integer,
+    status text NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'generated', 'reviewed', 'finalized')),
+    created_by uuid REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
+    created_at timestamptz DEFAULT now() NOT NULL,
+    updated_at timestamptz DEFAULT now() NOT NULL
+);
+
+-- [QUESTÕES] - Questões de cada prova
+CREATE TABLE IF NOT EXISTS public.exam_questions (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    exam_id uuid REFERENCES public.exams(id) ON DELETE CASCADE NOT NULL,
+    question_number integer NOT NULL,
+    question_type text NOT NULL CHECK (question_type IN ('multiple_choice', 'essay')),
+    statement text NOT NULL,
+    alternatives jsonb DEFAULT '[]'::jsonb,
+    correct_answer text,
+    explanation text,
+    created_at timestamptz DEFAULT now() NOT NULL,
+    updated_at timestamptz DEFAULT now() NOT NULL
+);
+
+-- [VERSÕES DA PROVA] - Versões embaralhadas (A, B, C... até J)
+CREATE TABLE IF NOT EXISTS public.exam_versions (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    exam_id uuid REFERENCES public.exams(id) ON DELETE CASCADE NOT NULL,
+    version_label text NOT NULL,
+    question_order jsonb NOT NULL,
+    alternatives_order jsonb NOT NULL,
+    qr_code_data text,
+    created_at timestamptz DEFAULT now() NOT NULL
+);
+
+-- [GABARITOS] - Gabarito de cada versão
+CREATE TABLE IF NOT EXISTS public.exam_answer_keys (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    exam_id uuid REFERENCES public.exams(id) ON DELETE CASCADE NOT NULL,
+    version_id uuid REFERENCES public.exam_versions(id) ON DELETE CASCADE NOT NULL,
+    answers jsonb NOT NULL,
+    created_at timestamptz DEFAULT now() NOT NULL
+);
+
+-- RLS para tabelas de provas
+ALTER TABLE exams ENABLE ROW LEVEL SECURITY;
+ALTER TABLE exam_questions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE exam_versions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE exam_answer_keys ENABLE ROW LEVEL SECURITY;
+
+-- Policies de provas
+CREATE POLICY "Users can manage their own exams" ON exams FOR ALL TO authenticated USING (auth.uid() = created_by);
+CREATE POLICY "Users can manage questions of their exams" ON exam_questions FOR ALL TO authenticated
+    USING (EXISTS (SELECT 1 FROM exams WHERE exams.id = exam_questions.exam_id AND exams.created_by = auth.uid()));
+CREATE POLICY "Users can manage versions of their exams" ON exam_versions FOR ALL TO authenticated
+    USING (EXISTS (SELECT 1 FROM exams WHERE exams.id = exam_versions.exam_id AND exams.created_by = auth.uid()));
+CREATE POLICY "Users can manage answer keys of their exams" ON exam_answer_keys FOR ALL TO authenticated
+    USING (EXISTS (SELECT 1 FROM exams WHERE exams.id = exam_answer_keys.exam_id AND exams.created_by = auth.uid()));
+
+-- Admin pode ler todas as provas
+CREATE POLICY "Admin can read all exams" ON exams FOR SELECT TO authenticated
+    USING (EXISTS (SELECT 1 FROM profiles WHERE user_id = auth.uid() AND role = 'admin'));
+
+-- Triggers de updated_at
+CREATE TRIGGER update_exams_updated_at BEFORE UPDATE ON exams FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_exam_questions_updated_at BEFORE UPDATE ON exam_questions FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
 -- Inserir config inicial
-INSERT INTO config (webhook_url, bot_name, ai_test_enabled) 
-VALUES ('', 'Assistente Automatech', true) 
+INSERT INTO config (webhook_url, bot_name, ai_test_enabled)
+VALUES ('', 'Assistente Automatech', true)
 ON CONFLICT DO NOTHING;
