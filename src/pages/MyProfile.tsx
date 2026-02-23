@@ -17,6 +17,9 @@ import {
   Check,
   CheckCircle,
   Upload,
+  Eye,
+  EyeOff,
+  KeyRound,
 } from "lucide-react";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -75,6 +78,19 @@ const MyProfile: React.FC = () => {
 
   // Slug foi editado manualmente (não auto-gerar mais)
   const slugManualRef = useRef(false);
+
+  // ── Troca de senha ────────────────────────────────────────────
+  const [pwForm, setPwForm] = useState({
+    current: "",
+    next: "",
+    confirm: "",
+  });
+  const [pwLoading, setPwLoading] = useState(false);
+  const [pwError, setPwError] = useState("");
+  const [pwSuccess, setPwSuccess] = useState("");
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNext, setShowNext] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   useEffect(() => {
     if (user) loadProfile();
@@ -275,6 +291,51 @@ const MyProfile: React.FC = () => {
     setAvatarPreview(null);
     setEditing(false);
     setError("");
+  };
+
+  const handleChangePassword = async () => {
+    setPwError("");
+    setPwSuccess("");
+
+    if (!pwForm.next || !pwForm.confirm) {
+      setPwError("Preencha a nova senha e a confirmação.");
+      return;
+    }
+    if (pwForm.next.length < 6) {
+      setPwError("A nova senha deve ter pelo menos 6 caracteres.");
+      return;
+    }
+    if (pwForm.next !== pwForm.confirm) {
+      setPwError("A nova senha e a confirmação não coincidem.");
+      return;
+    }
+
+    setPwLoading(true);
+
+    // Verifica senha atual re-autenticando
+    if (pwForm.current && user?.email) {
+      const { error: signInErr } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: pwForm.current,
+      });
+      if (signInErr) {
+        setPwError("Senha atual incorreta. Verifique e tente novamente.");
+        setPwLoading(false);
+        return;
+      }
+    }
+
+    const { error } = await supabase.auth.updateUser({ password: pwForm.next });
+
+    if (error) {
+      setPwError(error.message || "Erro ao alterar senha. Tente novamente.");
+    } else {
+      setPwSuccess("Senha alterada com sucesso!");
+      setPwForm({ current: "", next: "", confirm: "" });
+      setTimeout(() => setPwSuccess(""), 5000);
+    }
+
+    setPwLoading(false);
   };
 
   const copyUrl = () => {
@@ -690,6 +751,164 @@ const MyProfile: React.FC = () => {
               )}
               {profile.is_public ? "Público" : "Privado"}
             </span>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Change Password ── */}
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="flex items-center gap-3 px-6 py-4 border-b border-gray-100">
+          <div className="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center flex-shrink-0">
+            <KeyRound className="w-4 h-4 text-amber-600" />
+          </div>
+          <div>
+            <h2 className="text-base font-semibold text-gray-900">Alterar Senha</h2>
+            <p className="text-xs text-gray-400">Recomendamos usar uma senha forte e única</p>
+          </div>
+        </div>
+
+        <div className="p-6 space-y-4">
+          {pwSuccess && (
+            <div className="flex items-center gap-2.5 bg-green-50 border border-green-200 rounded-lg px-4 py-3">
+              <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
+              <p className="text-green-800 text-sm font-medium">{pwSuccess}</p>
+            </div>
+          )}
+          {pwError && (
+            <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-3">
+              <p className="text-red-800 text-sm">{pwError}</p>
+            </div>
+          )}
+
+          {/* Senha atual */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              Senha atual
+            </label>
+            <div className="relative">
+              <input
+                type={showCurrent ? "text" : "password"}
+                value={pwForm.current}
+                onChange={(e) => setPwForm((p) => ({ ...p, current: e.target.value }))}
+                className="w-full pl-3 pr-10 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                placeholder="Digite sua senha atual"
+              />
+              <button
+                type="button"
+                onClick={() => setShowCurrent((v) => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                {showCurrent ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+
+          {/* Nova senha */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              Nova senha
+            </label>
+            <div className="relative">
+              <input
+                type={showNext ? "text" : "password"}
+                value={pwForm.next}
+                onChange={(e) => setPwForm((p) => ({ ...p, next: e.target.value }))}
+                className="w-full pl-3 pr-10 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                placeholder="Mínimo 6 caracteres"
+              />
+              <button
+                type="button"
+                onClick={() => setShowNext((v) => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                {showNext ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
+            {/* Indicador de força */}
+            {pwForm.next.length > 0 && (
+              <div className="mt-2 flex items-center gap-2">
+                <div className="flex gap-1 flex-1">
+                  {[1, 2, 3, 4].map((level) => {
+                    const strength = pwForm.next.length >= 12 && /[A-Z]/.test(pwForm.next) && /[0-9]/.test(pwForm.next) && /[^a-zA-Z0-9]/.test(pwForm.next) ? 4
+                      : pwForm.next.length >= 10 && (/[A-Z]/.test(pwForm.next) || /[0-9]/.test(pwForm.next)) ? 3
+                      : pwForm.next.length >= 8 ? 2
+                      : 1;
+                    return (
+                      <div
+                        key={level}
+                        className={`h-1 flex-1 rounded-full transition-colors ${
+                          level <= strength
+                            ? strength === 1 ? "bg-red-400"
+                            : strength === 2 ? "bg-yellow-400"
+                            : strength === 3 ? "bg-blue-400"
+                            : "bg-green-500"
+                            : "bg-gray-200"
+                        }`}
+                      />
+                    );
+                  })}
+                </div>
+                <span className="text-xs text-gray-400">
+                  {pwForm.next.length < 6 ? "Muito fraca"
+                    : pwForm.next.length < 8 ? "Fraca"
+                    : pwForm.next.length < 10 ? "Média"
+                    : pwForm.next.length >= 12 && /[A-Z]/.test(pwForm.next) && /[0-9]/.test(pwForm.next) ? "Forte"
+                    : "Boa"}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Confirmar nova senha */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+              Confirmar nova senha
+            </label>
+            <div className="relative">
+              <input
+                type={showConfirm ? "text" : "password"}
+                value={pwForm.confirm}
+                onChange={(e) => setPwForm((p) => ({ ...p, confirm: e.target.value }))}
+                className={`w-full pl-3 pr-10 py-2.5 border rounded-lg text-sm focus:ring-2 focus:border-transparent outline-none transition-colors ${
+                  pwForm.confirm && pwForm.next !== pwForm.confirm
+                    ? "border-red-300 focus:ring-red-400 bg-red-50"
+                    : pwForm.confirm && pwForm.next === pwForm.confirm
+                    ? "border-green-300 focus:ring-green-400 bg-green-50"
+                    : "border-gray-300 focus:ring-blue-500"
+                }`}
+                placeholder="Repita a nova senha"
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirm((v) => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+              {pwForm.confirm && pwForm.next === pwForm.confirm && (
+                <Check className="absolute right-9 top-1/2 -translate-y-1/2 w-4 h-4 text-green-500" />
+              )}
+            </div>
+          </div>
+
+          <div className="pt-2">
+            <button
+              onClick={handleChangePassword}
+              disabled={pwLoading || !pwForm.next || !pwForm.confirm}
+              className="flex items-center gap-2 px-5 py-2.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-lg transition-colors"
+            >
+              {pwLoading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Alterando...
+                </>
+              ) : (
+                <>
+                  <KeyRound className="w-4 h-4" />
+                  Alterar Senha
+                </>
+              )}
+            </button>
           </div>
         </div>
       </div>
