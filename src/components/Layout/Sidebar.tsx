@@ -84,6 +84,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
             items: [
               { to: "/dashboard/admin", icon: Shield, label: "Painel Admin" },
               { to: "/dashboard/admin/logs", icon: Activity, label: "Logs de Uso" },
+              { to: "/dashboard/admin/tickets", icon: LifeBuoy, label: "Tickets de Suporte" },
             ],
           },
         ]

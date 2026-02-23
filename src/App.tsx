@@ -22,6 +22,7 @@ import TeacherProfile from "./pages/TeacherProfile";
 import MyProfile from "./pages/MyProfile";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminUserLogs from "./pages/AdminUserLogs";
+import AdminSuporteTickets from "./pages/AdminSuporteTickets";
 import SubscriptionPage from "./pages/SubscriptionPage";
 import FloatingAssistant from "./components/AI/FloatingAssistant";
 import AdminRoute from "./components/Auth/AdminRoute";
@@ -138,6 +139,14 @@ const AppRoutes: React.FC = () => {
                     element={
                       <AdminRoute>
                         <AdminUserLogs />
+                      </AdminRoute>
+                    }
+                  />
+                  <Route
+                    path="/admin/tickets"
+                    element={
+                      <AdminRoute>
+                        <AdminSuporteTickets />
                       </AdminRoute>
                     }
                   />

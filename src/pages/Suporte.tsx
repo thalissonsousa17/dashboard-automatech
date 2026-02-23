@@ -290,7 +290,7 @@ const Suporte: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {tickets.map((t) => {
+                  {tickets.map((t, idx) => {
                     const cfg = STATUS_CONFIG[t.status];
                     const StatusIcon = cfg.Icon;
                     return (
@@ -300,7 +300,7 @@ const Suporte: React.FC = () => {
                         className="hover:bg-gray-50 cursor-pointer transition-colors"
                       >
                         <td className="px-4 py-3 font-mono text-xs text-gray-400">
-                          #{t.id.slice(-4).toUpperCase()}
+                          #{tickets.length - idx}
                         </td>
                         <td className="px-4 py-3 font-medium text-gray-800 max-w-[200px] truncate">
                           {t.subject}
