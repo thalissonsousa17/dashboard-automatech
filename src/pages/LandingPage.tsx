@@ -481,6 +481,7 @@ const AutomatechLandingPage: React.FC = () => {
         </div>
       </section>
 
+      
       {/* ── FAQ ────────────────────────────────────────────── */}
       <section className="py-24 px-4 sm:px-6 lg:px-8 bg-gray-50">
         <div className="max-w-3xl mx-auto">
@@ -488,28 +489,27 @@ const AutomatechLandingPage: React.FC = () => {
             <p className="text-sm font-semibold text-blue-600 uppercase tracking-widest mb-3">Dúvidas</p>
             <h2 className="text-4xl font-bold text-gray-900">Perguntas frequentes</h2>
           </div>
-
           <div className="space-y-3">
             {[
               {
-                q: "Preciso de cartão de crédito para começar?",
-                a: "Não! O plano Gratuito não exige nenhum dado de pagamento. Você cria sua conta e começa a usar imediatamente, sem precisar cadastrar cartão.",
+                q: "É necessário cartão de crédito para utilizar o plano gratuito?",
+                a: "Não. O plano Gratuito não exige nenhum dado de pagamento. Basta criar sua conta e começar a usar imediatamente, sem nenhum compromisso financeiro.",
               },
               {
-                q: "Posso cancelar a qualquer momento?",
-                a: "Sim, sem burocracia. Acesse Configurações → Assinatura e cancele com um clique. Seu acesso premium permanece ativo até o fim do período já pago.",
+                q: "Posso cancelar minha assinatura a qualquer momento?",
+                a: "Sim, sem burocracia. Acesse Configurações → Assinatura e cancele com um clique. Seu acesso ao plano pago permanece ativo até o fim do período já pago.",
               },
               {
-                q: "Minha página fica disponível para clientes?",
-                a: "Sim! Ao publicar seus materiais, você recebe um link público exclusivo para compartilhar com seus alunos. Eles acessam tudo sem precisar criar conta.",
+                q: "Como recebo meu acesso após a contratação de um plano?",
+                a: "Após a confirmação do pagamento, você receberá automaticamente um e-mail com seu login e senha de acesso. O processo é imediato e totalmente automático.",
               },
               {
-                q: "Funciona para professores autônomos e imobiliárias?",
-                a: "A Automatech foi construída para professores e educadores de qualquer segmento — autônomos, escolas particulares, cursos livres e qualquer profissional que precise organizar conteúdo e engajar seu público.",
+                q: "A plataforma atende professores de todos os níveis de ensino?",
+                a: "Sim. O Automatech foi desenvolvido para atender professores do ensino fundamental, médio, técnico e superior, de instituições públicas ou privadas, além de profissionais autônomos e cursos livres.",
               },
               {
-                q: "Os contratos da plataforma têm validade jurídica?",
-                a: "A Automatech é uma plataforma de gestão educacional e publicação de conteúdo. Para documentos com validade jurídica, recomendamos assinar digitalmente via ferramentas como DocuSign ou Clicksign.",
+                q: "Posso fazer upgrade ou downgrade do meu plano?",
+                a: "Sim. Você pode alterar seu plano a qualquer momento pelo painel da conta. O upgrade é aplicado imediatamente e o downgrade entra em vigor no próximo ciclo de cobrança.",
               },
             ].map((item, i) => (
               <div
@@ -537,7 +537,6 @@ const AutomatechLandingPage: React.FC = () => {
               </div>
             ))}
           </div>
-
           <p className="text-center text-sm text-gray-400 mt-10">
             Ainda tem dúvidas?{" "}
             <a
@@ -551,6 +550,8 @@ const AutomatechLandingPage: React.FC = () => {
           </p>
         </div>
       </section>
+      
+      
 
       {/* ── Pricing ────────────────────────────────────────── */}
       <section id="pricing" className="py-24 px-4 sm:px-6 lg:px-8 bg-gray-900">
