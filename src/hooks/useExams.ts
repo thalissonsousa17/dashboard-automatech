@@ -276,6 +276,7 @@ Gere questões variadas, cobrindo diferentes aspectos do tema.
           { role: "user", content: prompt },
         ],
         true,
+        user?.id,
       );
 
       const cleanResponse = response
@@ -436,6 +437,7 @@ Responda em JSON:
         { role: "user", content: prompt },
       ],
       true,
+      user?.id,
     );
 
     const cleanResponse = response

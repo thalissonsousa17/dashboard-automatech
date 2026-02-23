@@ -7,6 +7,7 @@ import {
   Navigate,
 } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { SubscriptionProvider } from "./contexts/SubscriptionContext";
 import Layout from "./components/Layout/Layout";
 import LandingPage from "./pages/LandingPage";
 import LoginForm from "./components/Auth/LoginForm";
@@ -19,8 +20,11 @@ import SubmitWork from "./pages/SubmitWork";
 import TeacherProfile from "./pages/TeacherProfile";
 import MyProfile from "./pages/MyProfile";
 import AdminDashboard from "./pages/AdminDashboard";
+import AdminUserLogs from "./pages/AdminUserLogs";
+import SubscriptionPage from "./pages/SubscriptionPage";
 import FloatingAssistant from "./components/AI/FloatingAssistant";
 import AdminRoute from "./components/Auth/AdminRoute";
+import UpgradeModal from "./components/UpgradeModal";
 import ExamGenerator from "./pages/ExamGenerator";
 import WorkspacePage from "./modules/workspace/pages/WorkspacePage";
 import ExamEditorPage from "./modules/editor/pages/ExamEditorPage";
@@ -71,37 +75,50 @@ const AppRoutes: React.FC = () => {
         path="/dashboard/*"
         element={
           <ProtectedRoute>
-            <Layout>
-              <Routes>
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/publicar-post" element={<PublicarPost />} />
-                <Route path="/espaco-docente" element={<EspacoDocente />} />
-                <Route
-                  path="/student-submissions"
-                  element={<StudentSubmissionsWithAssistant />}
-                />
-                <Route path="/ai-assistant" element={<AIAssistant />} />
-                <Route path="/gerador-provas" element={<ExamGenerator />} />
-                {/* Premium: Workspaces, Pastas, Editor */}
-                <Route path="/workspaces" element={<WorkspacePage />} />
-                <Route path="/workspaces/:workspaceId" element={<WorkspacePage />} />
-                <Route path="/workspaces/:workspaceId/folder/:folderId" element={<WorkspacePage />} />
-                <Route path="/editor/:examId" element={<ExamEditorPage />} />
-                {/* Editor de Documentos Standalone */}
-                <Route path="/documents" element={<DocumentsPage />} />
-                <Route path="/documents/:docId" element={<StandaloneEditorPage />} />
-                <Route path="/meu-perfil" element={<MyProfile />} />
-                <Route
-                  path="/admin"
-                  element={
-                    <AdminRoute>
-                      <AdminDashboard />
-                    </AdminRoute>
-                  }
-                />
-                <Route path="*" element={<Navigate to="/dashboard" />} />
-              </Routes>
-            </Layout>
+            <SubscriptionProvider>
+              {/* UpgradeModal é global — renderizado uma vez no topo */}
+              <UpgradeModal />
+              <Layout>
+                <Routes>
+                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/publicar-post" element={<PublicarPost />} />
+                  <Route path="/espaco-docente" element={<EspacoDocente />} />
+                  <Route
+                    path="/student-submissions"
+                    element={<StudentSubmissionsWithAssistant />}
+                  />
+                  <Route path="/ai-assistant" element={<AIAssistant />} />
+                  <Route path="/gerador-provas" element={<ExamGenerator />} />
+                  {/* Premium: Workspaces, Pastas, Editor */}
+                  <Route path="/workspaces" element={<WorkspacePage />} />
+                  <Route path="/workspaces/:workspaceId" element={<WorkspacePage />} />
+                  <Route path="/workspaces/:workspaceId/folder/:folderId" element={<WorkspacePage />} />
+                  <Route path="/editor/:examId" element={<ExamEditorPage />} />
+                  {/* Editor de Documentos Standalone */}
+                  <Route path="/documents" element={<DocumentsPage />} />
+                  <Route path="/documents/:docId" element={<StandaloneEditorPage />} />
+                  <Route path="/meu-perfil" element={<MyProfile />} />
+                  <Route path="/subscription" element={<SubscriptionPage />} />
+                  <Route
+                    path="/admin"
+                    element={
+                      <AdminRoute>
+                        <AdminDashboard />
+                      </AdminRoute>
+                    }
+                  />
+                  <Route
+                    path="/admin/logs"
+                    element={
+                      <AdminRoute>
+                        <AdminUserLogs />
+                      </AdminRoute>
+                    }
+                  />
+                  <Route path="*" element={<Navigate to="/dashboard" />} />
+                </Routes>
+              </Layout>
+            </SubscriptionProvider>
           </ProtectedRoute>
         }
       />
@@ -116,7 +133,6 @@ const AppRoutes: React.FC = () => {
 const StudentSubmissionsWithAssistant: React.FC = () => {
   const [selectedText, setSelectedText] = useState("");
 
-  // Detectar seleção de texto apenas nesta página
   useEffect(() => {
     const handleTextSelection = () => {
       const selection = window.getSelection();

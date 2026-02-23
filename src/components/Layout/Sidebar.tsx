@@ -15,8 +15,11 @@ import {
   FolderOpen,
   FileEdit,
   User,
+  Activity,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
+import SubscriptionBadge from "../SubscriptionBadge";
+import { CreditCard } from "lucide-react";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -66,12 +69,19 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
         },
       ],
     },
+    {
+      label: "CONTA",
+      items: [
+        { to: "/dashboard/subscription", icon: CreditCard, label: "Plano & Assinatura" },
+      ],
+    },
     ...(isAdmin
       ? [
           {
             label: "SISTEMA",
             items: [
               { to: "/dashboard/admin", icon: Shield, label: "Painel Admin" },
+              { to: "/dashboard/admin/logs", icon: Activity, label: "Logs de Uso" },
             ],
           },
         ]
@@ -195,7 +205,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
               <p className="text-sm font-medium text-gray-900 truncate">
                 {displayName}
               </p>
-              <p className="text-xs text-gray-400">{role}</p>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <SubscriptionBadge clickable={false} />
+              </div>
             </div>
             <User className="w-3.5 h-3.5 text-gray-300 group-hover:text-gray-500 transition-colors" />
           </NavLink>

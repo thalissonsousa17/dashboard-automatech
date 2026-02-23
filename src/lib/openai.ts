@@ -1,5 +1,40 @@
 // OpenAI Integration for ChatGPT Assistant
+import { supabase } from "./supabase";
+
 const OPENAI_API_KEY = import.meta.env.VITE_OPENAI_API_KEY;
+
+// Preços por token (USD) — atualizar conforme tabela OpenAI
+const MODEL_PRICING: Record<string, { input: number; output: number }> = {
+  "gpt-4o-mini": { input: 0.15 / 1_000_000, output: 0.60 / 1_000_000 },
+  "gpt-4o":      { input: 2.50 / 1_000_000, output: 10.00 / 1_000_000 },
+  "gpt-4-turbo": { input: 10.00 / 1_000_000, output: 30.00 / 1_000_000 },
+};
+
+/** Salva o uso de tokens no banco — fire-and-forget (não bloqueia o fluxo principal). */
+async function saveTokenUsage(
+  userId: string,
+  model: string,
+  usage: { prompt_tokens: number; completion_tokens: number; total_tokens: number },
+): Promise<void> {
+  try {
+    const pricing = MODEL_PRICING[model] ?? MODEL_PRICING["gpt-4o-mini"];
+    const estimated_cost_usd =
+      usage.prompt_tokens * pricing.input +
+      usage.completion_tokens * pricing.output;
+
+    await (supabase as any).from("ai_token_usage").insert({
+      user_id: userId,
+      model,
+      prompt_tokens: usage.prompt_tokens,
+      completion_tokens: usage.completion_tokens,
+      total_tokens: usage.total_tokens,
+      estimated_cost_usd,
+    });
+  } catch (err) {
+    // Não propaga erro — log local apenas
+    console.warn("Erro ao salvar token usage:", err);
+  }
+}
 
 export class OpenAIService {
   private apiKey: string;
@@ -8,17 +43,26 @@ export class OpenAIService {
     this.apiKey = OPENAI_API_KEY || "";
   }
 
+  /**
+   * Executa uma chamada ao endpoint de chat completions.
+   * @param messages  Histórico de mensagens no formato OpenAI.
+   * @param jsonMode  Se true, força resposta em JSON válido.
+   * @param userId    Se fornecido, o uso de tokens é salvo no banco vinculado a este usuário.
+   */
   async chatCompletion(
     messages: Array<{ role: string; content: string }>,
     jsonMode = false,
-  ) {
+    userId?: string,
+  ): Promise<string> {
     if (!this.apiKey) {
       return this.getMockResponse();
     }
 
+    const model = "gpt-4o-mini";
+
     try {
       const body: Record<string, unknown> = {
-        model: "gpt-4o-mini",
+        model,
         messages,
         max_tokens: 4096,
         temperature: 0.7,
@@ -57,6 +101,16 @@ export class OpenAIService {
       }
 
       const data = await response.json();
+
+      // Salva uso de tokens de forma assíncrona (não bloqueia a resposta)
+      if (userId && data.usage) {
+        saveTokenUsage(userId, model, {
+          prompt_tokens: data.usage.prompt_tokens ?? 0,
+          completion_tokens: data.usage.completion_tokens ?? 0,
+          total_tokens: data.usage.total_tokens ?? 0,
+        });
+      }
+
       return data.choices[0].message.content;
     } catch (error) {
       console.error("Erro OpenAI:", error);

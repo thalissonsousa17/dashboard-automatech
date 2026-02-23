@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   ArrowRight,
   CheckCircle,
@@ -7,12 +7,79 @@ import {
   FileText,
   Users,
   Star,
-  MessageCircle,
   Play,
   Clock,
   Zap,
   Award,
+  Check,
+  X,
+  Crown,
+  MessageCircle,
 } from "lucide-react";
+
+// ─── Dados de planos (estáticos para a landing) ─────────────
+const LANDING_PLANS = [
+  {
+    slug: "free",
+    name: "Gratuito",
+    price: 0,
+    priceId: null,
+    recommended: false,
+    features: [
+      { label: "Provas/mês com IA", value: "1" },
+      { label: "Workspaces", value: "1" },
+      { label: "Publicar Material", value: false },
+      { label: "QR Chamada", value: false },
+      { label: "Anotações", value: "1" },
+      { label: "Suporte", value: false },
+    ],
+  },
+  {
+    slug: "starter",
+    name: "Starter",
+    price: 29,
+    priceId: "price_1T3lznBNpKinyuTebIjzvY2Q",
+    recommended: false,
+    features: [
+      { label: "Provas/mês com IA", value: "15" },
+      { label: "Workspaces", value: "5" },
+      { label: "Publicar Material", value: true },
+      { label: "QR Chamada", value: true },
+      { label: "Anotações", value: "10" },
+      { label: "Suporte", value: "Email" },
+    ],
+  },
+  {
+    slug: "pro",
+    name: "Pro",
+    price: 79,
+    priceId: "price_1T3m1TBNpKinyuTe4WsXqaLj",
+    recommended: true,
+    features: [
+      { label: "Provas/mês com IA", value: "30" },
+      { label: "Workspaces", value: "15" },
+      { label: "Publicar Material", value: true },
+      { label: "QR Chamada", value: true },
+      { label: "Anotações", value: "Ilimitado" },
+      { label: "Suporte", value: "Prioritário" },
+    ],
+  },
+  {
+    slug: "premium",
+    name: "Premium",
+    price: 99,
+    priceId: "price_1T3m2UBNpKinyuTeIJnC6AHE",
+    recommended: false,
+    features: [
+      { label: "Provas/mês com IA", value: "Ilimitado" },
+      { label: "Workspaces", value: "Ilimitado" },
+      { label: "Publicar Material", value: true },
+      { label: "QR Chamada", value: true },
+      { label: "Anotações", value: "Ilimitado" },
+      { label: "Suporte", value: "Dedicado" },
+    ],
+  },
+];
 
 const AutomatechLandingPage: React.FC = () => {
   const benefits = [
@@ -360,72 +427,103 @@ const AutomatechLandingPage: React.FC = () => {
       {/* Pricing Section */}
       <section
         id="pricing"
-        className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-blue-600 to-green-700"
+        className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-gray-900 to-blue-900"
       >
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-4xl font-bold text-white mb-6">
-            Comece hoje mesmo por apenas
-          </h2>
-
-          <div className="bg-white rounded-3xl p-12 shadow-2xl mb-8">
-            <div className="text-center mb-8">
-              <div className="text-6xl font-bold text-gray-900 mb-2">
-                R$ 50
-                <span className="text-2xl text-gray-600 font-normal">/mês</span>
-              </div>
-              <p className="text-xl text-gray-600">
-                Acesso completo à plataforma
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-              <div className="flex items-center">
-                <CheckCircle className="w-5 h-5 text-green-600 mr-3" />
-                <span>QR Chamada ilimitada</span>
-              </div>
-              <div className="flex items-center">
-                <CheckCircle className="w-5 h-5 text-green-600 mr-3" />
-                <span>Upload de materiais sem limite</span>
-              </div>
-              <div className="flex items-center">
-                <CheckCircle className="w-5 h-5 text-green-600 mr-3" />
-                <span>Gestão completa de turmas</span>
-              </div>
-
-              <div className="flex items-center">
-                <CheckCircle className="w-5 h-5 text-green-600 mr-3" />
-                <span>Correção automatizada</span>
-              </div>
-              <div className="flex items-center">
-                <CheckCircle className="w-5 h-5 text-green-600 mr-3" />
-                <span>Relatórios detalhados</span>
-              </div>
-              <div className="flex items-center">
-                <CheckCircle className="w-5 h-5 text-green-600 mr-3" />
-                <span>Suporte prioritário</span>
-              </div>
-            </div>
-
-            <button
-              onClick={() =>
-                window.open(
-                  "https://wa.me/5583986844693?text=Olá! Quero assinar a Automatech por R$ 50/mês",
-                  "_blank"
-                )
-              }
-              className="w-full bg-green-600 text-white py-4 px-8 rounded-xl hover:bg-gradient-to-br from-blue-600 to-green-700 transition-all font-bold text-xl shadow-lg"
-            >
-              Quero Assinar Agora
-            </button>
-
-            <p className="text-gray-500 text-sm mt-4">
-              Sem taxa de setup • Cancele quando quiser • Suporte incluído
+        <div className="max-w-7xl mx-auto">
+          {/* Título */}
+          <div className="text-center mb-12">
+            <span className="inline-flex items-center gap-2 bg-blue-600/20 text-blue-300 border border-blue-500/30 px-4 py-1.5 rounded-full text-sm font-semibold mb-4">
+              <Crown className="w-4 h-4" /> Planos e Preços
+            </span>
+            <h2 className="text-4xl font-bold text-white mb-4">
+              Escolha o plano ideal para você
+            </h2>
+            <p className="text-xl text-blue-200 max-w-2xl mx-auto">
+              Comece gratuitamente e evolua conforme suas necessidades. Cancele quando quiser.
             </p>
           </div>
 
-          <p className="text-green-100 text-lg">
-            Junte-se a mais de 100 professores que já transformaram suas aulas
-          </p>
+          {/* Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6 mb-12">
+            {LANDING_PLANS.map((plan) => (
+              <div
+                key={plan.slug}
+                className={`relative flex flex-col rounded-2xl p-6 transition-all duration-200
+                  ${plan.recommended
+                    ? "bg-white ring-4 ring-purple-400 ring-offset-2 ring-offset-gray-900 shadow-2xl scale-105"
+                    : "bg-white/10 backdrop-blur border border-white/20 hover:bg-white/15"}`}
+              >
+                {plan.recommended && (
+                  <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+                    <span className="inline-flex items-center gap-1 bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-4 py-1.5 rounded-full text-sm font-bold shadow-lg">
+                      <Star className="w-3.5 h-3.5 fill-current" /> Mais popular
+                    </span>
+                  </div>
+                )}
+
+                {/* Nome e preço */}
+                <h3 className={`text-xl font-bold mb-1 mt-2 ${plan.recommended ? "text-gray-900" : "text-white"}`}>
+                  {plan.name}
+                </h3>
+                <div className="mb-5">
+                  {plan.price === 0 ? (
+                    <p className={`text-3xl font-bold ${plan.recommended ? "text-gray-900" : "text-white"}`}>Grátis</p>
+                  ) : (
+                    <p className={`text-3xl font-bold ${plan.recommended ? "text-gray-900" : "text-white"}`}>
+                      R$ {plan.price}
+                      <span className={`text-base font-normal ${plan.recommended ? "text-gray-500" : "text-white/60"}`}>/mês</span>
+                    </p>
+                  )}
+                </div>
+
+                {/* Features */}
+                <ul className="space-y-2.5 mb-6 flex-1">
+                  {plan.features.map((f) => (
+                    <li key={f.label} className="flex items-center justify-between gap-2">
+                      <span className={`text-sm ${plan.recommended ? "text-gray-600" : "text-white/70"}`}>{f.label}</span>
+                      {typeof f.value === "boolean" ? (
+                        f.value
+                          ? <Check className="w-4 h-4 text-green-400 shrink-0" />
+                          : <X className="w-4 h-4 text-white/30 shrink-0" />
+                      ) : (
+                        <span className={`text-sm font-semibold ${f.value === "Ilimitado" ? "text-green-400" : plan.recommended ? "text-gray-800" : "text-white"}`}>
+                          {f.value}
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+
+                {/* CTA */}
+                {plan.price === 0 ? (
+                  <button
+                    onClick={() => window.open("/login", "_self")}
+                    className="w-full py-3 rounded-xl font-semibold text-sm border border-white/30 text-white/80 hover:bg-white/10 transition-colors"
+                  >
+                    Começar grátis
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => window.open("/login", "_self")}
+                    className={`w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-sm
+                      ${plan.recommended
+                        ? "bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white"
+                        : "bg-white text-gray-900 hover:bg-blue-50"}`}
+                  >
+                    Assinar agora <ArrowRight className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Garantias */}
+          <div className="flex flex-wrap items-center justify-center gap-8 text-blue-200 text-sm">
+            <span className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-green-400" /> Sem taxa de setup</span>
+            <span className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-green-400" /> Cancele quando quiser</span>
+            <span className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-green-400" /> Pagamento 100% seguro</span>
+            <span className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-green-400" /> Suporte em português</span>
+          </div>
         </div>
       </section>
 

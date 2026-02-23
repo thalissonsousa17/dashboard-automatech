@@ -5,7 +5,10 @@
       "Bash(npx tsc:*)",
       "Bash(npm install:*)",
       "Bash(node -e:*)",
-      "Bash(ls -la \"c:\\\\Users\\\\ECRITORIO\\\\Desktop\\\\Projeto Dashboard Professor EDU\\\\dashboard-automatech\\\\src\"\" | grep -E \"^d \")"
+      "Bash(npx supabase@latest:*)",
+      "Bash(git push:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ]
   }
 }
