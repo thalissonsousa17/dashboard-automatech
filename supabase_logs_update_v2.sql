@@ -1,8 +1,10 @@
 -- ============================================================
 -- ATUALIZAÇÃO: get_admin_user_logs com dados de assinatura
 -- Execute este script no SQL Editor do Supabase
--- (usa CREATE OR REPLACE — seguro para rodar mais de uma vez)
 -- ============================================================
+
+-- DROP necessário pois o tipo de retorno mudou (novas colunas)
+DROP FUNCTION IF EXISTS public.get_admin_user_logs(timestamptz, timestamptz);
 
 CREATE OR REPLACE FUNCTION public.get_admin_user_logs(
   p_from_date timestamptz DEFAULT NULL,
