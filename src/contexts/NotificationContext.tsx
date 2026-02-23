@@ -68,6 +68,47 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     fetchNotifications();
   }, [fetchNotifications]);
 
+  // Realtime: atualiza o sino instantaneamente quando nova notificação chegar
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const channel = db
+      .channel(`notifications_user_${user.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "notifications",
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload: any) => {
+          const n = payload.new;
+          setNotifications((prev) => {
+            // Evita duplicatas
+            if (prev.some((x) => x.id === n.id)) return prev;
+            return [
+              {
+                id: n.id,
+                type: n.type as "ticket" | "system",
+                title: n.title,
+                body: n.body,
+                read: false,
+                ticketId: n.ticket_id ?? undefined,
+                createdAt: "agora",
+              },
+              ...prev,
+            ];
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      db.removeChannel(channel);
+    };
+  }, [user?.id]);
+
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   const markAsRead = useCallback(

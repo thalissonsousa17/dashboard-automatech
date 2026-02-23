@@ -93,6 +93,51 @@ export const TicketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     fetchTickets();
   }, [fetchTickets]);
 
+  // Realtime: atualiza mensagens e status quando admin responder
+  useEffect(() => {
+    if (!user?.id) return;
+
+    // Escuta novas mensagens em tickets do usuário
+    const msgChannel = db
+      .channel(`ticket_messages_user_${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "ticket_messages" },
+        () => {
+          // Re-busca os tickets para pegar a nova mensagem e status atualizado
+          fetchTickets();
+        }
+      )
+      .subscribe();
+
+    // Escuta mudanças de status nos tickets do usuário
+    const statusChannel = db
+      .channel(`support_tickets_user_${user.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "support_tickets",
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload: any) => {
+          const updated = payload.new;
+          setTickets((prev) =>
+            prev.map((t) =>
+              t.id === updated.id ? { ...t, status: updated.status } : t
+            )
+          );
+        }
+      )
+      .subscribe();
+
+    return () => {
+      db.removeChannel(msgChannel);
+      db.removeChannel(statusChannel);
+    };
+  }, [user?.id, fetchTickets]);
+
   const createTicket = useCallback(
     async (subject: string, description: string, category: string): Promise<Ticket | null> => {
       if (!user?.id) return null;

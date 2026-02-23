@@ -91,11 +91,18 @@ const useAdminTickets = () => {
 
   const sendSupportMessage = useCallback(
     async (ticketId: string, text: string) => {
+      // 1. Insere mensagem do suporte
       await db.from("ticket_messages").insert({
         ticket_id: ticketId,
         from_role: "support",
         text,
       });
+
+      // 2. Marca ticket como "open" (aguardando resposta do usuário)
+      await db
+        .from("support_tickets")
+        .update({ status: "open", updated_at: new Date().toISOString() })
+        .eq("id", ticketId);
 
       const now = new Date().toLocaleString("pt-BR", {
         day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit",
@@ -110,11 +117,13 @@ const useAdminTickets = () => {
 
       setTickets((prev) =>
         prev.map((t) =>
-          t.id === ticketId ? { ...t, messages: [...t.messages, newMsg] } : t
+          t.id === ticketId
+            ? { ...t, status: "open", messages: [...t.messages, newMsg] }
+            : t
         )
       );
 
-      // Cria notificação para o usuário do ticket
+      // 3. Cria notificação para o usuário do ticket (dispara Realtime no browser do professor)
       const ticket = tickets.find((t) => t.id === ticketId);
       if (ticket?.userId) {
         await db.from("notifications").insert({
