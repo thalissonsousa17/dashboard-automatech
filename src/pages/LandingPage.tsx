@@ -17,6 +17,7 @@ import {
   Sparkles,
   ChevronRight,
   GraduationCap,
+  ChevronDown,
 } from "lucide-react";
 import { supabase } from "../lib/supabase";
 
@@ -153,6 +154,7 @@ const colorMap: Record<string, { bg: string; icon: string; badge: string }> = {
 
 const AutomatechLandingPage: React.FC = () => {
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   const handleSubscribe = async (priceId: string, planSlug: string) => {
     setLoadingPlan(planSlug);
@@ -476,6 +478,85 @@ const AutomatechLandingPage: React.FC = () => {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* ── FAQ ────────────────────────────────────────────── */}
+      <section className="py-24 px-4 sm:px-6 lg:px-8 bg-gray-50">
+        <div className="max-w-3xl mx-auto">
+          <div className="text-center mb-14">
+            <p className="text-sm font-semibold text-blue-600 uppercase tracking-widest mb-3">Dúvidas</p>
+            <h2 className="text-4xl font-bold text-gray-900">Perguntas frequentes</h2>
+          </div>
+
+          <div className="space-y-3">
+            {[
+              {
+                q: "Preciso de cartão de crédito para começar?",
+                a: "Não! O plano Gratuito não exige nenhum dado de pagamento. Você começa a usar imediatamente após criar sua conta, sem compromisso.",
+              },
+              {
+                q: "Posso cancelar a qualquer momento?",
+                a: "Sim, você pode cancelar quando quiser diretamente pelo painel, em Configurações → Assinatura. O acesso premium continua até o fim do período pago.",
+              },
+              {
+                q: "Minha página fica disponível para alunos?",
+                a: "Sim! Ao publicar materiais, seus alunos recebem um link único para acessar o conteúdo sem precisar criar conta. Basta compartilhar o link.",
+              },
+              {
+                q: "Funciona para professores autônomos e instituições?",
+                a: "Totalmente. A plataforma foi pensada tanto para professores individuais quanto para escolas e cursos. Cada professor tem seu próprio painel independente.",
+              },
+              {
+                q: "Os contratos da plataforma têm validade jurídica?",
+                a: "A Automatech é uma plataforma de gestão educacional. Para documentos com validade jurídica, recomendamos assinar digitalmente via DocuSign ou similares.",
+              },
+              {
+                q: "Como funciona a geração de provas com IA?",
+                a: "Você informa o tema, o nível de dificuldade, o tipo (múltipla escolha ou dissertativa) e a quantidade de questões. A IA gera uma prova completa com gabarito em menos de 2 minutos.",
+              },
+              {
+                q: "Meus dados estão seguros?",
+                a: "Sim. Utilizamos Supabase com criptografia de ponta a ponta, autenticação segura e backups automáticos. Seus dados nunca são compartilhados com terceiros.",
+              },
+            ].map((item, i) => (
+              <div
+                key={i}
+                className="bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm"
+              >
+                <button
+                  className="w-full flex items-center justify-between px-6 py-5 text-left gap-4"
+                  onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                >
+                  <span className="font-semibold text-gray-900 text-sm sm:text-base">{item.q}</span>
+                  <ChevronDown
+                    className={`w-5 h-5 text-gray-400 flex-shrink-0 transition-transform duration-200 ${
+                      openFaq === i ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+                {openFaq === i && (
+                  <div className="px-6 pb-5">
+                    <p className="text-gray-500 text-sm leading-relaxed border-t border-gray-50 pt-4">
+                      {item.a}
+                    </p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <p className="text-center text-sm text-gray-400 mt-10">
+            Ainda tem dúvidas?{" "}
+            <a
+              href="https://wa.me/5583986844693"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 font-semibold hover:underline"
+            >
+              Fale conosco no WhatsApp
+            </a>
+          </p>
         </div>
       </section>
 
