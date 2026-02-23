@@ -227,6 +227,7 @@ const AdminUserLogs: React.FC = () => {
   });
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [rpcError, setRpcError] = useState<string | null>(null);
 
   // Filtros
   const [emailFilter, setEmailFilter] = useState("");
@@ -258,7 +259,11 @@ const AdminUserLogs: React.FC = () => {
           db.rpc("get_admin_token_summary"),
         ]);
 
-        if (!logsRes.error && logsRes.data) {
+        if (logsRes.error) {
+          console.error("RPC get_admin_user_logs error:", logsRes.error);
+          setRpcError(logsRes.error.message || "Erro ao carregar usuários.");
+        } else if (logsRes.data) {
+          setRpcError(null);
           setRows(
             logsRes.data.map((r: UserLogRow) => ({
               ...r,
@@ -403,6 +408,20 @@ const AdminUserLogs: React.FC = () => {
           Atualizar
         </button>
       </div>
+
+      {/* ── Banner de erro de configuração ── */}
+      {rpcError && (
+        <div className="bg-red-50 border border-red-200 rounded-xl px-5 py-4 flex items-start gap-3">
+          <AlertTriangle size={18} className="text-red-500 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-semibold text-red-800">Função SQL não encontrada no banco de dados</p>
+            <p className="text-xs text-red-600 mt-1">
+              Execute o arquivo <code className="font-mono bg-red-100 px-1 rounded">supabase_admin_logs_complete.sql</code> no SQL Editor do Supabase para ativar esta página.
+            </p>
+            <p className="text-xs text-red-400 mt-1 font-mono">{rpcError}</p>
+          </div>
+        </div>
+      )}
 
       {/* ── Cards de uso de IA ── */}
       {loading ? (
