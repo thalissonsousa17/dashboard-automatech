@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTeachingPosts } from '../hooks/useTeachingPosts';
 import { useAuth } from '../hooks/useAuth';
+import { useSubscriptionContext } from '../contexts/SubscriptionContext';
 import { uploadTeachingPostFile } from '../lib/supabase';
 import { 
   Save, 
@@ -32,6 +33,9 @@ const PublicarPost: React.FC = () => {
   const navigate = useNavigate();
   const { createPost } = useTeachingPosts();
   const { user } = useAuth();
+
+  // ── Plan limits ──────────────────────────────────────────────────────────────
+  const { canAccess, openUpgradeModal } = useSubscriptionContext();
   
   const [formData, setFormData] = useState({
     title: '',
@@ -50,7 +54,6 @@ const PublicarPost: React.FC = () => {
   const [videoInput, setVideoInput] = useState({ title: '', url: '' });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -144,6 +147,15 @@ const PublicarPost: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // ── Verificar limite de publicar material ────────────────────────────────
+    if (!canAccess('publicar_material')) {
+      openUpgradeModal(
+        'publicar_material',
+        'Publicar Material',
+      );
+      return;
+    }
     
     if (!formData.title.trim() || !formData.description.trim()) {
       setError('Preencha todos os campos obrigatórios');
@@ -173,7 +185,6 @@ const PublicarPost: React.FC = () => {
           imageUrls.push(imageUrl);
         } catch (uploadError) {
           console.error('Erro ao fazer upload da imagem:', uploadError);
-          // Em caso de erro, usar URL de placeholder
           imageUrls.push('https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=800');
         }
       }
@@ -191,7 +202,6 @@ const PublicarPost: React.FC = () => {
           });
         } catch (uploadError) {
           console.error('Erro ao fazer upload do arquivo:', uploadError);
-          // Em caso de erro, usar URL mock
           fileData.push({
             name: fileItem.name,
             url: `#mock-file-${fileItem.name}`,
@@ -203,7 +213,7 @@ const PublicarPost: React.FC = () => {
       // Criar o post
       const postData = {
         ...formData,
-        author: 'Professor', // Valor padrão
+        author: 'Professor',
         files: fileData,
         videos: videos,
         images: imageUrls
@@ -214,7 +224,6 @@ const PublicarPost: React.FC = () => {
       
       await createPost(postData);
       
-      // Redirecionar para o Espaço Docente
       navigate('/espaco-docente');
     } catch (err) {
       console.error('Erro ao criar post:', err);

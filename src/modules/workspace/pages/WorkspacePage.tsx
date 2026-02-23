@@ -38,6 +38,7 @@ import TemplatePickerModal from '../../templates/components/TemplatePickerModal'
 import MovePickerModal from '../components/MovePickerModal';
 import type { Workspace } from '../types';
 import type { Exam } from '../../../types';
+import { useSubscriptionContext } from '../../../contexts/SubscriptionContext';
 
 const WorkspacePage: React.FC = () => {
   const { workspaceId, folderId } = useParams<{
@@ -45,6 +46,9 @@ const WorkspacePage: React.FC = () => {
     folderId?: string;
   }>();
   const navigate = useNavigate();
+
+  // ── Plan limits ──────────────────────────────────────────────────────────────
+  const { canAccess, openUpgradeModal, currentPlan } = useSubscriptionContext();
 
   const {
     workspaces,
@@ -101,6 +105,20 @@ const WorkspacePage: React.FC = () => {
   } | null>(null);
   const [movePending, setMovePending] = useState(false);
 
+  // ── Limite: criar novo workspace ─────────────────────────────────────────────
+  const handleNovoWorkspace = () => {
+    const wsLimit = currentPlan?.features?.workspaces ?? 1;
+    if (!canAccess('workspaces', workspaces.length)) {
+      openUpgradeModal(
+        'workspaces',
+        'Workspaces',
+        wsLimit === -1 ? 'Ilimitado' : wsLimit,
+      );
+      return;
+    }
+    setShowCreateWs(true);
+  };
+
   const handleMoveConfirm = async (targetFolderId: string | null) => {
     if (!movingItem || !workspaceId) return;
     setMovePending(true);
@@ -112,7 +130,6 @@ const WorkspacePage: React.FC = () => {
       } else {
         await moveFolder(movingItem.id, targetFolderId);
         fetchFolders(workspaceId);
-        // If we moved the currently selected folder, go to root
         if (selectedFolderId === movingItem.id) {
           setSelectedFolderId(null);
           navigate(`/dashboard/workspaces/${workspaceId}`);
@@ -151,7 +168,6 @@ const WorkspacePage: React.FC = () => {
       await moveExamToFolder(exam.id, selectedFolderId, workspaceId);
       setUnfiledExams((prev) => prev.filter((e) => e.id !== exam.id));
       loadExams();
-      // Recarrega pastas para atualizar contadores
       fetchFolders(workspaceId);
     } catch (err) {
       console.error('Erro ao mover prova:', err);
@@ -160,7 +176,6 @@ const WorkspacePage: React.FC = () => {
     }
   };
 
-  // Load folders when workspace changes
   useEffect(() => {
     if (workspaceId) {
       fetchFolders(workspaceId);
@@ -168,7 +183,6 @@ const WorkspacePage: React.FC = () => {
     }
   }, [workspaceId, fetchFolders, loadUnfiledExams]);
 
-  // Load exams when folder changes
   const loadExams = useCallback(async () => {
     if (!workspaceId) return;
     setExamsLoading(true);
@@ -188,7 +202,6 @@ const WorkspacePage: React.FC = () => {
     }
   }, [workspaceId, selectedFolderId, loadExams]);
 
-  // Update breadcrumbs
   useEffect(() => {
     const updateBreadcrumbs = async () => {
       const items: BreadcrumbItem[] = [];
@@ -212,9 +225,7 @@ const WorkspacePage: React.FC = () => {
             label: p.name,
             onClick: () => {
               setSelectedFolderId(p.id);
-              navigate(
-                `/dashboard/workspaces/${workspaceId}/folder/${p.id}`,
-              );
+              navigate(`/dashboard/workspaces/${workspaceId}/folder/${p.id}`);
             },
           });
         });
@@ -226,7 +237,6 @@ const WorkspacePage: React.FC = () => {
     updateBreadcrumbs();
   }, [currentWorkspace, selectedFolderId, workspaceId, fetchFolderPath, navigate]);
 
-  // Sync URL folderId with state
   useEffect(() => {
     setSelectedFolderId(folderId || null);
   }, [folderId]);
@@ -274,7 +284,6 @@ const WorkspacePage: React.FC = () => {
     }
   };
 
-  // Subfolders for the current view
   const currentSubfolders = React.useMemo(() => {
     const findChildren = (nodes: typeof folderTree, parentId: string | null): typeof folderTree => {
       if (!parentId) return nodes;
@@ -303,7 +312,7 @@ const WorkspacePage: React.FC = () => {
             </p>
           </div>
           <button
-            onClick={() => setShowCreateWs(true)}
+            onClick={handleNovoWorkspace}
             className="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             <Plus className="w-4 h-4" />
@@ -325,7 +334,7 @@ const WorkspacePage: React.FC = () => {
               Crie um workspace para organizar suas provas
             </p>
             <button
-              onClick={() => setShowCreateWs(true)}
+              onClick={handleNovoWorkspace}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
             >
               Criar Workspace
@@ -669,7 +678,6 @@ const WorkspacePage: React.FC = () => {
         onExamCreated={loadExams}
       />
 
-      {/* Move Picker Modal */}
       <MovePickerModal
         isOpen={!!movingItem}
         onClose={() => setMovingItem(null)}

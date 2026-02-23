@@ -1,6 +1,9 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useExams } from "../hooks/useExams";
+import { useAuth } from "../contexts/AuthContext";
+import { useSubscriptionContext } from "../contexts/SubscriptionContext";
+import { supabase } from "../lib/supabase";
 import QRCode from "react-qr-code";
 import QRCodeLib from "qrcode";
 import jsPDF from "jspdf";
@@ -42,6 +45,21 @@ import {
 } from "lucide-react";
 
 const EXAM_FORM_STORAGE_KEY = "automatech_exam_form_draft";
+
+// ─── Busca quantas provas o usuário criou no mês atual ───────────────────────
+async function getProvasDoMes(userId: string): Promise<number> {
+  const start = new Date();
+  start.setDate(1);
+  start.setHours(0, 0, 0, 0);
+
+  const { count } = await (supabase as any)
+    .from("provas")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .gte("created_at", start.toISOString());
+
+  return count ?? 0;
+}
 
 // Utilitário para extrair texto de PDF
 async function extractTextFromPDF(file: File): Promise<string> {
@@ -120,12 +138,6 @@ function buildQuestionsXML(questions: ExamQuestion[]): string {
   return xml;
 }
 
-/**
- * Percorre cada <w:p> do XML, extrai o texto de todos os <w:t> internos
- * (mesmo fragmentados em múltiplos runs pelo Word) e substitui o parágrafo
- * inteiro se o texto concatenado corresponder ao marcador.
- * Retorna null se o marcador não for encontrado.
- */
 function replaceParagraphByTextContent(
   docXml: string,
   markerRegex: RegExp,
@@ -136,7 +148,6 @@ function replaceParagraphByTextContent(
 
   const result = docXml.replace(pRegex, (paragraph) => {
     if (found) return paragraph;
-    // Concatena o texto de todos os <w:t> dentro do parágrafo
     const textNodes = [...paragraph.matchAll(/<w:t[^>]*>([\s\S]*?)<\/w:t>/g)];
     const paragraphText = textNodes.map((m) => m[1]).join("");
     if (markerRegex.test(paragraphText)) {
@@ -149,7 +160,6 @@ function replaceParagraphByTextContent(
   return found ? result : null;
 }
 
-// Injeta questões no DOCX preservando formatação original
 async function injectQuestionsIntoDocx(
   templateFile: File,
   questions: ExamQuestion[],
@@ -163,29 +173,19 @@ async function injectQuestionsIntoDocx(
   let docXml = await docXmlFile.async("string");
   const questionsXml = buildQuestionsXML(questions);
 
-  // Regex do marcador — aceita {{QUESTOES}} e variações (maiúsculas, acentuação)
   const MARKER_REGEX = /\{\{[Qq][Uu][Ee][Ss][Tt][OoÕõ][Ee][Ss]\}\}/;
-
-  // Estratégia 1: marcador literal contíguo no XML (texto não fragmentado)
   const paragraphWithMarker =
     /<w:p\b[^>]*>(?:(?!<w:p\b).)*?\{\{[Qq][Uu][Ee][Ss][Tt][OoÕõ][Ee][Ss]\}\}(?:(?!<w:p\b).)*?<\/w:p>/s;
 
   if (paragraphWithMarker.test(docXml)) {
     docXml = docXml.replace(paragraphWithMarker, questionsXml);
   } else if (MARKER_REGEX.test(docXml)) {
-    // Estratégia 2: marcador existe mas fora de um <w:p> completo (edge case)
     docXml = docXml.replace(MARKER_REGEX, questionsXml);
   } else {
-    // Estratégia 3: Word fragmentou o marcador em múltiplos <w:r>/<w:t>
-    // Extrai texto de cada parágrafo e verifica se o conteúdo corresponde ao marcador
     const resultWithMarker = replaceParagraphByTextContent(docXml, MARKER_REGEX, questionsXml);
     if (resultWithMarker) {
       docXml = resultWithMarker;
     } else {
-      // Sem marcador no documento — insere questões antes de <w:sectPr> (seção final)
-      // Em DOCX, <w:sectPr> é sempre o ÚLTIMO filho de <w:body> (antes de </w:body>).
-      // Inserir depois de </w:sectPr> corrompe o documento — Word descarta silenciosamente.
-      // A posição correta é IMEDIATAMENTE ANTES da abertura de <w:sectPr>.
       const sectPrIdx = docXml.lastIndexOf('<w:sectPr');
       const bodyEndIdx = docXml.lastIndexOf('</w:body>');
       const insertAt =
@@ -257,11 +257,9 @@ const CreateExamForm: React.FC<{
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  // Arquivos de referência (PDF/DOCX/TXT para extrair conteúdo)
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [extracting, setExtracting] = useState(false);
 
-  // Modelo DOCX para injetar as questões
   const [templateFile, setTemplateFile] = useState<File | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -294,7 +292,7 @@ const CreateExamForm: React.FC<{
     const current = (form[field] as Difficulty[]) || [];
     const exists = current.includes(level);
     const updated = exists ? current.filter((d) => d !== level) : [...current, level];
-    if (updated.length === 0) return; // must have at least 1
+    if (updated.length === 0) return;
     if (field === "difficulty_levels") {
       setForm({ ...form, [field]: updated, difficulty: updated[0] });
     } else {
@@ -457,7 +455,6 @@ const CreateExamForm: React.FC<{
               </div>
               <p className="text-xs text-blue-600">Total: {(form.mixed_mc_count || 5) + (form.mixed_essay_count || 5)} questões</p>
 
-              {/* Dificuldade por tipo — Múltipla Escolha */}
               <div>
                 <p className="text-xs font-semibold text-blue-700 mb-1">Dificuldade — Múltipla Escolha</p>
                 <div className="flex gap-2">
@@ -474,7 +471,6 @@ const CreateExamForm: React.FC<{
                 <p className="text-xs text-blue-500 mt-1">{diffDistLabel(form.mc_difficulty_levels || ["medium"], form.mixed_mc_count || 5)}</p>
               </div>
 
-              {/* Dificuldade por tipo — Dissertativa */}
               <div>
                 <p className="text-xs font-semibold text-blue-700 mb-1">Dificuldade — Dissertativas</p>
                 <div className="flex gap-2">
@@ -521,7 +517,7 @@ const CreateExamForm: React.FC<{
             </div>
           )}
 
-          {/* ---- ESTILO DAS QUESTÕES ---- */}
+          {/* Estilo das questões */}
           {form.question_type !== "mixed" ? (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Estilo das Questões</label>
@@ -571,7 +567,7 @@ const CreateExamForm: React.FC<{
             </div>
           )}
 
-          {/* ---- MODELO DE PROVA (NOVO) ---- */}
+          {/* Modelo de Prova */}
           <div className="border border-purple-200 bg-purple-50 rounded-lg p-4 space-y-2">
             <div className="flex items-center justify-between">
               <div>
@@ -583,46 +579,29 @@ const CreateExamForm: React.FC<{
               </div>
             </div>
 
-            <input
-              ref={templateInputRef}
-              type="file"
-              accept=".docx"
-              onChange={handleTemplateUpload}
-              className="hidden"
-            />
+            <input ref={templateInputRef} type="file" accept=".docx" onChange={handleTemplateUpload} className="hidden" />
 
             {templateFile ? (
               <div className="flex items-center justify-between bg-white border border-purple-200 rounded-lg px-3 py-2 text-sm">
                 <div className="flex items-center space-x-2 text-purple-700">
                   <FileText className="w-4 h-4" />
                   <span className="font-medium">{templateFile.name}</span>
-                  <span className="text-xs text-purple-400">
-                    ({(templateFile.size / 1024).toFixed(0)} KB)
-                  </span>
+                  <span className="text-xs text-purple-400">({(templateFile.size / 1024).toFixed(0)} KB)</span>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setTemplateFile(null)}
-                  className="text-purple-400 hover:text-red-500"
-                >
+                <button type="button" onClick={() => setTemplateFile(null)} className="text-purple-400 hover:text-red-500">
                   <X className="w-4 h-4" />
                 </button>
               </div>
             ) : (
-              <button
-                type="button"
-                onClick={() => templateInputRef.current?.click()}
-                className="w-full px-3 py-2.5 border-2 border-dashed border-purple-300 rounded-lg hover:border-purple-500 hover:bg-purple-100 transition-colors flex items-center justify-center space-x-2 text-sm text-purple-600"
-              >
+              <button type="button" onClick={() => templateInputRef.current?.click()}
+                className="w-full px-3 py-2.5 border-2 border-dashed border-purple-300 rounded-lg hover:border-purple-500 hover:bg-purple-100 transition-colors flex items-center justify-center space-x-2 text-sm text-purple-600">
                 <Upload className="w-4 h-4" />
                 <span>Selecionar modelo .docx</span>
               </button>
             )}
 
             {templateFile && (
-              <p className="text-xs text-purple-500">
-                ✓ A prova gerada será baixada já inserida neste modelo.
-              </p>
+              <p className="text-xs text-purple-500">✓ A prova gerada será baixada já inserida neste modelo.</p>
             )}
           </div>
 
@@ -631,15 +610,10 @@ const CreateExamForm: React.FC<{
             <p className="text-sm font-semibold text-gray-700">Material de Referência <span className="text-gray-400 font-normal">(opcional)</span></p>
             <p className="text-xs text-gray-500">Forneça conteúdo base para a IA gerar as questões com mais precisão.</p>
 
-            {/* Upload de arquivo */}
             <div>
               <input ref={fileInputRef} type="file" accept=".pdf,.docx,.doc,.txt" multiple onChange={handleFileUpload} className="hidden" />
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={extracting}
-                className="w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-colors flex items-center justify-center space-x-2 text-sm text-gray-600"
-              >
+              <button type="button" onClick={() => fileInputRef.current?.click()} disabled={extracting}
+                className="w-full px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-colors flex items-center justify-center space-x-2 text-sm text-gray-600">
                 {extracting ? (
                   <><Loader2 className="w-4 h-4 animate-spin" /><span>Extraindo texto...</span></>
                 ) : (
@@ -665,14 +639,12 @@ const CreateExamForm: React.FC<{
               )}
             </div>
 
-            {/* OU divider */}
             <div className="flex items-center gap-3">
               <div className="flex-1 h-px bg-gray-200" />
               <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">OU</span>
               <div className="flex-1 h-px bg-gray-200" />
             </div>
 
-            {/* Textarea */}
             <div>
               <textarea
                 value={form.reference_material || ""}
@@ -682,9 +654,7 @@ const CreateExamForm: React.FC<{
                 placeholder="Cole ou escreva o conteúdo de referência aqui..."
               />
               {form.reference_material && (
-                <p className="text-xs text-gray-400 mt-1">
-                  {form.reference_material.length.toLocaleString()} caracteres
-                </p>
+                <p className="text-xs text-gray-400 mt-1">{form.reference_material.length.toLocaleString()} caracteres</p>
               )}
             </div>
           </div>
@@ -693,11 +663,8 @@ const CreateExamForm: React.FC<{
             <button type="button" onClick={onCancel} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">
               Cancelar
             </button>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center space-x-2"
-            >
+            <button type="submit" disabled={submitting}
+              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center space-x-2">
               {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
               <span>{submitting ? "Criando..." : "Criar Prova"}</span>
             </button>
@@ -1143,12 +1110,8 @@ const VersionsModal: React.FC<{
                     </button>
                   )}
                   <button
-                    onClick={() => {
-                      onClose();
-                      navigate(`/dashboard/editor/${exam.id}?version=${selectedVersionData.version_label}`);
-                    }}
-                    className="px-4 py-2 bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 flex items-center space-x-2 text-sm font-medium"
-                  >
+                    onClick={() => { onClose(); navigate(`/dashboard/editor/${exam.id}?version=${selectedVersionData.version_label}`); }}
+                    className="px-4 py-2 bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-100 flex items-center space-x-2 text-sm font-medium">
                     <Edit3 className="w-4 h-4" /><span>Abrir no Editor</span>
                   </button>
                 </div>
@@ -1325,6 +1288,9 @@ const QRScannerModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 // =============================================
 const ExamGenerator: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { canAccess, openUpgradeModal, currentPlan } = useSubscriptionContext();
+
   const {
     exams, loading, generating, createExam, generateQuestions,
     regenerateQuestion, updateQuestion, deleteQuestion, generateVersions,
@@ -1354,10 +1320,28 @@ const ExamGenerator: React.FC = () => {
     } catch { /* ignore */ }
   }, []);
 
-  // Recebe o templateFile opcional do formulário
+  // ── Verificar limite de provas do mês antes de abrir o form ─────────────────
+  const handleNovaProva = async () => {
+    if (!user) return;
+
+    const provasDoMes = await getProvasDoMes(user.id);
+    const provasLimit = currentPlan?.features?.provas_mes ?? 1;
+
+    if (!canAccess("provas_mes", provasDoMes)) {
+      openUpgradeModal(
+        "provas_mes",
+        "Provas com IA",
+        provasLimit === -1 ? "Ilimitado" : provasLimit,
+      );
+      return;
+    }
+
+    setShowCreateForm(true);
+  };
+
   const handleCreateExam = async (input: CreateExamInput, templateFile?: File) => {
     setErrorMessage(null);
-    setGenOptions(input); // save generation options for re-use
+    setGenOptions(input);
     const exam = await createExam(input);
     if (exam) {
       setShowCreateForm(false);
@@ -1367,11 +1351,7 @@ const ExamGenerator: React.FC = () => {
       try {
         const questions = await generateQuestions(exam, input);
         setActiveQuestions(questions);
-
-        // Guarda o modelo para usar quando o professor clicar em "Baixar DOCX"
-        if (templateFile) {
-          setActiveTemplateFile(templateFile);
-        }
+        if (templateFile) setActiveTemplateFile(templateFile);
       } catch (genErr) {
         const msg = genErr instanceof Error ? genErr.message : "Erro desconhecido";
         setActiveQuestions([]);
@@ -1382,7 +1362,7 @@ const ExamGenerator: React.FC = () => {
 
   const handleOpenExam = async (exam: Exam) => {
     setLoadingExam(true);
-    setActiveTemplateFile(null); // limpa template da prova anterior
+    setActiveTemplateFile(null);
     setGenOptions({});
     try {
       const [fullExam, examVersions, examAnswerKeys] = await Promise.all([
@@ -1438,7 +1418,7 @@ const ExamGenerator: React.FC = () => {
     );
   }
 
-  // ---- EXPORTAÇÕES ----
+  // ── Exportações (inalteradas) ────────────────────────────────────────────────
   const exportDirectPDF = async () => {
     if (!activeExam || activeQuestions.length === 0) return;
     const doc = new jsPDF();
@@ -1495,20 +1475,16 @@ const ExamGenerator: React.FC = () => {
 
   const exportDirectDOCX = async () => {
     if (!activeExam || activeQuestions.length === 0) return;
-
-    // Se o professor subiu um modelo, aplica as questões nele
     if (activeTemplateFile) {
       try {
         const blob = await injectQuestionsIntoDocx(activeTemplateFile, activeQuestions);
         saveAs(blob, `${activeExam.title} - ${activeTemplateFile.name}`);
-        return; // sucesso → sai sem gerar DOCX padrão
+        return;
       } catch (tmplErr) {
         console.error("Erro ao aplicar modelo:", tmplErr);
         alert("Houve um erro ao aplicar o modelo. Baixando DOCX padrão.");
-        // fallthrough para o DOCX padrão abaixo
       }
     }
-
     const children: Paragraph[] = [
       new Paragraph({ text: activeExam.title, heading: HeadingLevel.HEADING_1, alignment: "center" as unknown as undefined }),
       new Paragraph({ children: [new TextRun({ text: `Disciplina: ${activeExam.subject}`, italics: true, size: 22 })], alignment: "center" as unknown as undefined }),
@@ -1557,7 +1533,11 @@ const ExamGenerator: React.FC = () => {
               <button onClick={() => setShowQRScanner(true)} className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 flex items-center space-x-2">
                 <Camera className="w-4 h-4" /><span>Ler QR Code</span>
               </button>
-              <button onClick={() => setShowCreateForm(true)} className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-2 rounded-lg hover:from-blue-700 hover:to-blue-800 flex items-center space-x-2">
+              {/* ── Botão com verificação de limite ── */}
+              <button
+                onClick={handleNovaProva}
+                className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-2 rounded-lg hover:from-blue-700 hover:to-blue-800 flex items-center space-x-2"
+              >
                 <Plus className="w-4 h-4" /><span>Nova Prova</span>
               </button>
             </div>
@@ -1578,7 +1558,13 @@ const ExamGenerator: React.FC = () => {
               <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhuma prova criada</h3>
               <p className="text-gray-500 mb-4">Crie sua primeira prova com IA para começar</p>
-              <button onClick={() => setShowCreateForm(true)} className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">Criar Primeira Prova</button>
+              {/* ── Botão estado vazio com verificação de limite ── */}
+              <button
+                onClick={handleNovaProva}
+                className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
+              >
+                Criar Primeira Prova
+              </button>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
