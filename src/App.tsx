@@ -27,6 +27,7 @@ import AdminRoute from "./components/Auth/AdminRoute";
 import UpgradeModal from "./components/UpgradeModal";
 import ExamGenerator from "./pages/ExamGenerator";
 import Suporte from "./pages/Suporte";
+import AjudaProfessor from "./pages/AjudaProfessor";
 import WorkspacePage from "./modules/workspace/pages/WorkspacePage";
 import ExamEditorPage from "./modules/editor/pages/ExamEditorPage";
 import DocumentsPage from "./modules/editor/pages/DocumentsPage";
@@ -139,7 +140,8 @@ const AppRoutes: React.FC = () => {
                       {/* Editor de Documentos */}
                       <Route path="/documents" element={<DocumentsPage />} />
                       <Route path="/documents/:docId" element={<StandaloneEditorPage />} />
-                      {/* Suporte */}
+                      {/* Ajuda + Suporte */}
+                      <Route path="/ajuda"   element={<AjudaProfessor />} />
                       <Route path="/suporte" element={<Suporte />} />
                       <Route path="/meu-perfil" element={<MyProfile />} />
                       <Route path="/subscription" element={<SubscriptionPage />} />

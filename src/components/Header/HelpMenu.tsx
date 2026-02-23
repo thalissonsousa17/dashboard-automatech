@@ -81,18 +81,29 @@ const HelpMenu: React.FC = () => {
                       <BookOpen className="w-3 h-3" /> Documentação
                     </p>
                     <div className="space-y-1">
-                      {activeDocs.map((d) => (
-                        <a
-                          key={d.id}
-                          href={d.url || "#"}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center justify-between text-sm text-gray-700 hover:text-blue-600 py-1 px-1 rounded hover:bg-blue-50 transition-colors"
-                        >
-                          <span>{d.title}</span>
-                          <ExternalLink className="w-3 h-3 flex-shrink-0 text-gray-400" />
-                        </a>
-                      ))}
+                      {activeDocs.map((d) => {
+                        const hasUrl = d.url && d.url !== "#";
+                        return hasUrl ? (
+                          <a
+                            key={d.id}
+                            href={d.url!}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center justify-between text-sm text-gray-700 hover:text-blue-600 py-1 px-1 rounded hover:bg-blue-50 transition-colors"
+                          >
+                            <span>{d.title}</span>
+                            <ExternalLink className="w-3 h-3 flex-shrink-0 text-gray-400" />
+                          </a>
+                        ) : (
+                          <button
+                            key={d.id}
+                            onClick={() => { setOpen(false); navigate("/dashboard/ajuda"); }}
+                            className="flex items-center justify-between text-sm text-gray-700 hover:text-blue-600 py-1 px-1 rounded hover:bg-blue-50 transition-colors w-full text-left"
+                          >
+                            <span>{d.title}</span>
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
