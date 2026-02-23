@@ -10,16 +10,19 @@ import {
   Menu,
   X,
   ChevronLeft,
+  HelpCircle,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import AdminDashboard from "../../pages/AdminDashboard";
 import AdminUserLogs from "../../pages/AdminUserLogs";
 import AdminSuporteTickets from "../../pages/AdminSuporteTickets";
+import AdminAjuda from "../../pages/AdminAjuda";
 
 const NAV_ITEMS = [
   { to: "/dashboard/admin",         label: "Dashboard",          Icon: LayoutDashboard, end: true },
   { to: "/dashboard/admin/logs",    label: "Usuários",           Icon: Activity },
   { to: "/dashboard/admin/tickets", label: "Suporte",            Icon: LifeBuoy },
+  { to: "/dashboard/admin/ajuda",   label: "Ajuda",              Icon: HelpCircle },
 ];
 
 const AdminLayout: React.FC = () => {
@@ -172,6 +175,7 @@ const AdminLayout: React.FC = () => {
             <Route path="/"        element={<AdminDashboard />} />
             <Route path="/logs"    element={<AdminUserLogs />} />
             <Route path="/tickets" element={<AdminSuporteTickets />} />
+            <Route path="/ajuda"   element={<AdminAjuda />} />
             <Route path="*"        element={<Navigate to="/dashboard/admin" replace />} />
           </Routes>
         </main>
