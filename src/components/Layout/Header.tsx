@@ -1,8 +1,10 @@
 // src/components/Header.tsx
 import React, { useState } from 'react';
-import { Menu, Bell, User, LogOut } from 'lucide-react';
+import { Menu, User, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import NotificationBell from '../Header/NotificationBell';
+import HelpMenu from '../Header/HelpMenu';
 
 interface HeaderProps {
   onMenuToggle: () => void;
@@ -33,12 +35,9 @@ const Header: React.FC<HeaderProps> = ({ onMenuToggle }) => {
         
 
         <div className="flex items-center space-x-2 ml-auto">
-          {/* Botão de Notificações */}
-          <button className="p-2 rounded-full hover:bg-gray-100 relative transition-colors">
-            <Bell className="w-5 h-5 text-gray-600" />
-            {/* Opcional: Adicione a bolha de notificação */}
-            {/* <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></span> */}
-          </button>
+          {/* Notificações + Ajuda */}
+          <NotificationBell />
+          <HelpMenu />
           
           {/* Menu de Perfil */}
           <div className="relative">

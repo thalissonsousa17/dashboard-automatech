@@ -27,10 +27,13 @@ import FloatingAssistant from "./components/AI/FloatingAssistant";
 import AdminRoute from "./components/Auth/AdminRoute";
 import UpgradeModal from "./components/UpgradeModal";
 import ExamGenerator from "./pages/ExamGenerator";
+import Suporte from "./pages/Suporte";
 import WorkspacePage from "./modules/workspace/pages/WorkspacePage";
 import ExamEditorPage from "./modules/editor/pages/ExamEditorPage";
 import DocumentsPage from "./modules/editor/pages/DocumentsPage";
 import StandaloneEditorPage from "./modules/editor/pages/StandaloneEditorPage";
+import { NotificationProvider } from "./contexts/NotificationContext";
+import { TicketProvider } from "./contexts/TicketContext";
 
 // Redireciona para /dashboard/subscription se vier da landing page com ?redirect=subscription
 const LoginRoute: React.FC = () => {
@@ -94,6 +97,8 @@ const AppRoutes: React.FC = () => {
         path="/dashboard/*"
         element={
           <ProtectedRoute>
+            <NotificationProvider>
+            <TicketProvider>
             <SubscriptionProvider>
               {/* UpgradeModal é global — renderizado uma vez no topo */}
               <UpgradeModal />
@@ -116,6 +121,8 @@ const AppRoutes: React.FC = () => {
                   {/* Editor de Documentos Standalone */}
                   <Route path="/documents" element={<DocumentsPage />} />
                   <Route path="/documents/:docId" element={<StandaloneEditorPage />} />
+                  {/* Suporte */}
+                  <Route path="/suporte" element={<Suporte />} />
                   <Route path="/meu-perfil" element={<MyProfile />} />
                   <Route path="/subscription" element={<SubscriptionPage />} />
                   <Route
@@ -138,6 +145,8 @@ const AppRoutes: React.FC = () => {
                 </Routes>
               </Layout>
             </SubscriptionProvider>
+            </TicketProvider>
+            </NotificationProvider>
           </ProtectedRoute>
         }
       />

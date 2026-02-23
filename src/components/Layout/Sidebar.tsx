@@ -16,6 +16,7 @@ import {
   FileEdit,
   User,
   Activity,
+  LifeBuoy,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import SubscriptionBadge from "../SubscriptionBadge";
@@ -72,6 +73,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
     {
       label: "CONTA",
       items: [
+        { to: "/dashboard/suporte", icon: LifeBuoy, label: "Suporte" },
         { to: "/dashboard/subscription", icon: CreditCard, label: "Plano & Assinatura" },
       ],
     },
