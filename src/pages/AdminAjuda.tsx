@@ -13,7 +13,7 @@ import {
   X,
   Save,
   Youtube,
-  Link,
+  AlignLeft,
 } from "lucide-react";
 import { useHelpItems, HelpItem, extractVideoId } from "../hooks/useHelpItems";
 
@@ -22,11 +22,11 @@ type FormMode = "doc" | "video";
 
 interface FormState {
   title: string;
-  url: string;      // para doc
+  content: string;  // para doc: texto livre
   videoUrl: string; // para video (URL ou ID direto)
 }
 
-const EMPTY_FORM: FormState = { title: "", url: "", videoUrl: "" };
+const EMPTY_FORM: FormState = { title: "", content: "", videoUrl: "" };
 
 // ── Modal de formulário ───────────────────────────────────────────────────────
 interface ItemFormModalProps {
@@ -48,13 +48,14 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  const set = (field: keyof FormState) => (e: React.ChangeEvent<HTMLInputElement>) =>
-    setForm((prev) => ({ ...prev, [field]: e.target.value }));
+  const setField = (field: keyof FormState) =>
+    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+      setForm((prev) => ({ ...prev, [field]: e.target.value }));
 
   const handleSave = async () => {
     setError("");
     if (!form.title.trim()) { setError("Informe o título."); return; }
-    if (mode === "doc" && !form.url.trim()) { setError("Informe a URL da documentação."); return; }
+    if (mode === "doc" && !form.content.trim()) { setError("Informe o conteúdo da documentação."); return; }
     if (mode === "video" && !form.videoUrl.trim()) { setError("Informe a URL ou ID do vídeo."); return; }
 
     setSaving(true);
@@ -94,26 +95,30 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({
             <input
               type="text"
               value={form.title}
-              onChange={set("title")}
-              placeholder={mode === "doc" ? "Ex: Como usar o Gerador de Provas" : "Ex: Gerando sua primeira prova com IA"}
+              onChange={setField("title")}
+              placeholder={
+                mode === "doc"
+                  ? "Ex: Como usar o Gerador de Provas"
+                  : "Ex: Gerando sua primeira prova com IA"
+              }
               className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50 focus:bg-white transition-all"
             />
           </div>
 
-          {/* URL / VideoId */}
+          {/* Conteúdo (doc) ou URL do YouTube (video) */}
           {mode === "doc" ? (
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1.5">
-                URL da Documentação
+                Conteúdo
               </label>
               <div className="relative">
-                <Link className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-                <input
-                  type="url"
-                  value={form.url}
-                  onChange={set("url")}
-                  placeholder="https://docs.seusite.com/artigo"
-                  className="w-full pl-9 pr-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50 focus:bg-white transition-all"
+                <AlignLeft className="absolute left-3 top-3 w-3.5 h-3.5 text-gray-400" />
+                <textarea
+                  value={form.content}
+                  onChange={setField("content")}
+                  placeholder="Escreva o conteúdo da documentação aqui. Pode editar quando quiser."
+                  rows={6}
+                  className="w-full pl-9 pr-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50 focus:bg-white transition-all resize-none"
                 />
               </div>
             </div>
@@ -127,7 +132,7 @@ const ItemFormModal: React.FC<ItemFormModalProps> = ({
                 <input
                   type="text"
                   value={form.videoUrl}
-                  onChange={set("videoUrl")}
+                  onChange={setField("videoUrl")}
                   placeholder="https://youtube.com/watch?v=... ou dQw4w9WgXcQ"
                   className="w-full pl-9 pr-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50 focus:bg-white transition-all"
                 />
@@ -205,8 +210,12 @@ const ItemRow: React.FC<ItemRowProps> = ({ item, onEdit, onToggle, onDelete }) =
       {/* Título + meta */}
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-gray-900 truncate">{item.title}</p>
-        <p className="text-xs text-gray-400 truncate font-mono">
-          {isDoc ? item.url : `youtube.com/watch?v=${item.video_id}`}
+        <p className="text-xs text-gray-400 truncate">
+          {isDoc
+            ? item.content
+              ? item.content.slice(0, 60) + (item.content.length > 60 ? "..." : "")
+              : "Sem conteúdo"
+            : `youtube.com/watch?v=${item.video_id}`}
         </p>
       </div>
 
@@ -223,18 +232,8 @@ const ItemRow: React.FC<ItemRowProps> = ({ item, onEdit, onToggle, onDelete }) =
 
       {/* Ações */}
       <div className="flex items-center gap-1 flex-shrink-0">
-        {/* Preview / Link externo */}
-        {isDoc && item.url && item.url !== "#" ? (
-          <a
-            href={item.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="p-1.5 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
-            title="Abrir link"
-          >
-            <ExternalLink className="w-3.5 h-3.5" />
-          </a>
-        ) : !isDoc && item.video_id ? (
+        {/* Link YouTube */}
+        {!isDoc && item.video_id && (
           <a
             href={`https://www.youtube.com/watch?v=${item.video_id}`}
             target="_blank"
@@ -244,7 +243,7 @@ const ItemRow: React.FC<ItemRowProps> = ({ item, onEdit, onToggle, onDelete }) =
           >
             <ExternalLink className="w-3.5 h-3.5" />
           </a>
-        ) : null}
+        )}
 
         {/* Toggle ativo */}
         <button
@@ -313,15 +312,13 @@ const AdminAjuda: React.FC = () => {
 
   const handleSave = async (values: FormState, id?: string) => {
     if (id) {
-      // Editar
       const patch: Record<string, string> = { title: values.title };
-      if (modal.mode === "doc") patch.url = values.url;
+      if (modal.mode === "doc") patch.content = values.content;
       if (modal.mode === "video") patch.video_id = extractVideoId(values.videoUrl);
       await updateItem(id, patch as any);
     } else {
-      // Criar
       if (modal.mode === "doc") {
-        await createItem({ type: "doc", title: values.title, url: values.url });
+        await createItem({ type: "doc", title: values.title, content: values.content });
       } else {
         await createItem({
           type: "video",
@@ -337,10 +334,9 @@ const AdminAjuda: React.FC = () => {
     setConfirmDelete(null);
   };
 
-  // Constrói o FormState inicial para edição
   const getInitialForm = (item: HelpItem): FormState => ({
     title: item.title,
-    url: item.url || "",
+    content: item.content || "",
     videoUrl: item.video_id || "",
   });
 
@@ -382,7 +378,7 @@ const AdminAjuda: React.FC = () => {
             className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors"
           >
             <Plus className="w-3.5 h-3.5" />
-            Adicionar link
+            Adicionar documentação
           </button>
         </div>
 
@@ -392,7 +388,7 @@ const AdminAjuda: React.FC = () => {
           </div>
         ) : docs.length === 0 ? (
           <div className="py-10 text-center border-2 border-dashed border-gray-200 rounded-xl text-gray-400 text-sm">
-            Nenhum link de documentação cadastrado ainda.
+            Nenhuma documentação cadastrada ainda.
           </div>
         ) : (
           <div className="space-y-2">
@@ -461,7 +457,7 @@ const AdminAjuda: React.FC = () => {
           <p className="text-sm font-medium text-amber-800">Como funciona?</p>
           <p className="text-xs text-amber-700 mt-0.5 leading-relaxed">
             Os itens ativos aparecem automaticamente no botão de Ajuda <strong>(?)</strong> do Header para todos os professores.
-            Itens inativos ficam ocultos mas não são deletados. Apenas links e vídeos com status "Ativo" são exibidos.
+            Itens inativos ficam ocultos mas não são deletados. Apenas documentações e vídeos com status "Ativo" são exibidos.
           </p>
         </div>
       </div>

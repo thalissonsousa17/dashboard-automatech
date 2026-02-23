@@ -6,6 +6,7 @@ export interface HelpItem {
   type: "doc" | "video";
   title: string;
   url?: string;
+  content?: string;
   video_id?: string;
   sort_order: number;
   active: boolean;
@@ -17,6 +18,7 @@ export type HelpItemInput = {
   type: "doc" | "video";
   title: string;
   url?: string;
+  content?: string;
   video_id?: string;
   sort_order?: number;
   active?: boolean;
@@ -27,9 +29,7 @@ const db = supabase as any;
 /** Extrai o videoId de URLs do YouTube (youtu.be / watch?v= / embed/) */
 export function extractVideoId(input: string): string {
   const trimmed = input.trim();
-  // já é um ID puro (sem barra, sem ponto)
   if (/^[A-Za-z0-9_-]{11}$/.test(trimmed)) return trimmed;
-
   try {
     const url = new URL(trimmed);
     if (url.hostname === "youtu.be") return url.pathname.slice(1);
@@ -56,7 +56,6 @@ export function useHelpItems() {
       .from("help_items")
       .select("*")
       .order("sort_order", { ascending: true });
-
     if (!error && data) setItems(data as HelpItem[]);
     setLoading(false);
   }, []);
@@ -72,14 +71,17 @@ export function useHelpItems() {
         type: input.type,
         title: input.title.trim(),
         url: input.url?.trim() || null,
+        content: input.content?.trim() || null,
         video_id: input.video_id?.trim() || null,
         sort_order: input.sort_order ?? items.filter((i) => i.type === input.type).length,
         active: input.active ?? true,
       })
       .select()
       .single();
-
-    if (error || !data) return null;
+    if (error || !data) {
+      console.error("HELP_ITEMS CREATE ERROR:", error?.code, error?.message, error?.details);
+      return null;
+    }
     const item = data as HelpItem;
     setItems((prev) => [...prev, item].sort((a, b) => a.sort_order - b.sort_order));
     return item;
@@ -92,12 +94,16 @@ export function useHelpItems() {
     const payload: Record<string, unknown> = {};
     if (patch.title !== undefined) payload.title = patch.title.trim();
     if (patch.url !== undefined) payload.url = patch.url.trim() || null;
+    if (patch.content !== undefined) payload.content = patch.content.trim() || null;
     if (patch.video_id !== undefined) payload.video_id = patch.video_id.trim() || null;
     if (patch.sort_order !== undefined) payload.sort_order = patch.sort_order;
     if (patch.active !== undefined) payload.active = patch.active;
 
     const { error } = await db.from("help_items").update(payload).eq("id", id);
-    if (error) return false;
+    if (error) {
+      console.error("HELP_ITEMS UPDATE ERROR:", error?.code, error?.message, error?.details);
+      return false;
+    }
     setItems((prev) =>
       prev.map((item) => (item.id === id ? { ...item, ...payload } : item))
     );
@@ -112,7 +118,10 @@ export function useHelpItems() {
 
   const deleteItem = async (id: string): Promise<boolean> => {
     const { error } = await db.from("help_items").delete().eq("id", id);
-    if (error) return false;
+    if (error) {
+      console.error("HELP_ITEMS DELETE ERROR:", error?.code, error?.message, error?.details);
+      return false;
+    }
     setItems((prev) => prev.filter((i) => i.id !== id));
     return true;
   };

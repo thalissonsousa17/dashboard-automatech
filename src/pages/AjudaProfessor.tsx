@@ -3,7 +3,6 @@ import {
   HelpCircle,
   BookOpen,
   Play,
-  ExternalLink,
   X,
   Search,
   Youtube,
@@ -34,10 +33,7 @@ const YoutubeModal: React.FC<YoutubeModalProps> = ({ video, onClose }) => (
           </div>
           <p className="font-semibold text-gray-900 text-sm">{video.title}</p>
         </div>
-        <button
-          onClick={onClose}
-          className="p-1.5 rounded-lg hover:bg-gray-100"
-        >
+        <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100">
           <X className="w-4 h-4 text-gray-500" />
         </button>
       </div>
@@ -60,11 +56,16 @@ interface DocCardProps {
 }
 
 const DocCard: React.FC<DocCardProps> = ({ item }): JSX.Element => {
-  const hasUrl = Boolean(item.url && item.url !== "#" && item.url.startsWith("http"));
+  const [expanded, setExpanded] = useState(false);
+  const hasContent = Boolean(item.content?.trim());
 
-  if (!hasUrl) {
-    return (
-      <div className="group flex items-start gap-3 p-4 bg-white border border-gray-200 rounded-xl cursor-default">
+  return (
+    <div className="flex flex-col bg-white border border-gray-200 rounded-xl transition-all hover:border-blue-200 hover:shadow-sm">
+      {/* Header do card */}
+      <button
+        onClick={() => hasContent && setExpanded((prev) => !prev)}
+        className={`flex items-start gap-3 p-4 text-left w-full ${hasContent ? "cursor-pointer" : "cursor-default"}`}
+      >
         <div className="w-9 h-9 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0">
           <FileText className="w-4 h-4 text-blue-600" />
         </div>
@@ -72,31 +73,31 @@ const DocCard: React.FC<DocCardProps> = ({ item }): JSX.Element => {
           <p className="text-sm font-semibold text-gray-900 leading-snug">
             {item.title}
           </p>
-          <p className="text-xs text-gray-400 mt-0.5">Em breve</p>
+          {!hasContent && (
+            <p className="text-xs text-gray-400 mt-0.5">Em breve</p>
+          )}
+          {hasContent && !expanded && (
+            <p className="text-xs text-gray-400 mt-0.5 truncate">
+              {item.content}
+            </p>
+          )}
         </div>
-      </div>
-    );
-  }
+        {hasContent && (
+          <span className="text-xs text-blue-500 font-medium flex-shrink-0 mt-0.5">
+            {expanded ? "Fechar" : "Ver"}
+          </span>
+        )}
+      </button>
 
-  return (
-    <a
-      href={item.url!}
-      target="_blank"
-      rel="noopener noreferrer"
-      onClick={(e) => e.stopPropagation()}
-      className="group flex items-start gap-3 p-4 bg-white border border-gray-200 rounded-xl transition-all hover:border-blue-300 hover:shadow-sm cursor-pointer"
-    >
-      <div className="w-9 h-9 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-blue-100 transition-colors">
-        <FileText className="w-4 h-4 text-blue-600" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-gray-900 group-hover:text-blue-700 transition-colors leading-snug">
-          {item.title}
-        </p>
-        <p className="text-xs text-gray-400 mt-0.5 truncate">{item.url}</p>
-      </div>
-      <ExternalLink className="w-3.5 h-3.5 text-gray-300 group-hover:text-blue-500 flex-shrink-0 mt-0.5 transition-colors" />
-    </a>
+      {/* Conteúdo expandido */}
+      {expanded && hasContent && (
+        <div className="px-4 pb-4 pt-0 border-t border-gray-100 mt-0">
+          <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap pt-3">
+            {item.content}
+          </p>
+        </div>
+      )}
+    </div>
   );
 };
 
@@ -159,14 +160,12 @@ const AjudaProfessor: React.FC = () => {
   const [search, setSearch] = useState("");
   const [playingVideo, setPlayingVideo] = useState<HelpItem | null>(null);
 
-  // Apenas itens ativos
   const activeDocs = docs.filter((d) => d.active);
   const activeVideos = videos.filter((v) => v.active);
 
-  // Filtrar por busca
   const q = search.toLowerCase().trim();
   const filteredDocs = q
-    ? activeDocs.filter((d) => d.title.toLowerCase().includes(q))
+    ? activeDocs.filter((d) => d.title.toLowerCase().includes(q) || d.content?.toLowerCase().includes(q))
     : activeDocs;
   const filteredVideos = q
     ? activeVideos.filter((v) => v.title.toLowerCase().includes(q))
@@ -185,8 +184,7 @@ const AjudaProfessor: React.FC = () => {
           Central de Ajuda
         </h1>
         <p className="text-sm text-gray-500 mt-1.5">
-          Documentações e tutoriais em vídeo para aproveitar ao máximo a
-          plataforma.
+          Documentações e tutoriais em vídeo para aproveitar ao máximo a plataforma.
         </p>
       </div>
 
@@ -244,7 +242,6 @@ const AjudaProfessor: React.FC = () => {
             </section>
           )}
 
-          {/* Divisor */}
           {filteredDocs.length > 0 && filteredVideos.length > 0 && (
             <div className="border-t border-gray-100" />
           )}
@@ -254,20 +251,14 @@ const AjudaProfessor: React.FC = () => {
             <section>
               <div className="flex items-center gap-2 mb-4">
                 <Youtube className="w-4 h-4 text-red-600" />
-                <h2 className="font-semibold text-gray-800">
-                  Tutoriais em Vídeo
-                </h2>
+                <h2 className="font-semibold text-gray-800">Tutoriais em Vídeo</h2>
                 <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium">
                   {filteredVideos.length}
                 </span>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {filteredVideos.map((item) => (
-                  <VideoCard
-                    key={item.id}
-                    item={item}
-                    onPlay={setPlayingVideo}
-                  />
+                  <VideoCard key={item.id} item={item} onPlay={setPlayingVideo} />
                 ))}
               </div>
             </section>
