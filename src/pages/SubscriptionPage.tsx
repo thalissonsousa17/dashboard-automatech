@@ -136,11 +136,26 @@ const SubscriptionPage: React.FC = () => {
 
   useEffect(() => {
     if (success) {
-      // Recarrega assinatura após checkout bem-sucedido
       const timer = setTimeout(() => refreshSubscription(), 2000);
       return () => clearTimeout(timer);
     }
   }, [success, refreshSubscription]);
+
+  // Auto-inicia checkout quando o usuário vem da landing page com plano pendente
+  useEffect(() => {
+    if (subLoading || plansLoading || !user || plans.length === 0) return;
+    const pendingPriceId = sessionStorage.getItem("pending_plan_id");
+    if (!pendingPriceId) return;
+    sessionStorage.removeItem("pending_plan_id");
+    const plan = plans.find((p) => p.stripe_price_id === pendingPriceId);
+    if (plan && plan.stripe_price_id && currentPlan?.id !== plan.id) {
+      setCheckoutLoading(plan.id);
+      createCheckoutSession(plan.stripe_price_id, user.id, user.email!)
+        .catch(console.error)
+        .finally(() => setCheckoutLoading(null));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [subLoading, plansLoading, user, plans]);
 
   const handleSelectPlan = async (plan: Plan) => {
     if (!plan.stripe_price_id || !user) return;

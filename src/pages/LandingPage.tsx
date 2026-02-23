@@ -504,7 +504,10 @@ const AutomatechLandingPage: React.FC = () => {
                   </button>
                 ) : (
                   <button
-                    onClick={() => window.open("/login", "_self")}
+                    onClick={() => {
+                      if (plan.priceId) sessionStorage.setItem("pending_plan_id", plan.priceId);
+                      window.location.href = "/login?redirect=subscription";
+                    }}
                     className={`w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-sm
                       ${plan.recommended
                         ? "bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white"

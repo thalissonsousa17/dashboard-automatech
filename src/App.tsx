@@ -5,6 +5,7 @@ import {
   Routes,
   Route,
   Navigate,
+  useLocation,
 } from "react-router-dom";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { SubscriptionProvider } from "./contexts/SubscriptionContext";
@@ -31,6 +32,27 @@ import ExamEditorPage from "./modules/editor/pages/ExamEditorPage";
 import DocumentsPage from "./modules/editor/pages/DocumentsPage";
 import StandaloneEditorPage from "./modules/editor/pages/StandaloneEditorPage";
 
+// Redireciona para /dashboard/subscription se vier da landing page com ?redirect=subscription
+const LoginRoute: React.FC = () => {
+  const { user, loading } = useAuth();
+  const location = useLocation();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (!user) return <LoginForm />;
+
+  const params = new URLSearchParams(location.search);
+  const redirect = params.get("redirect");
+  const dest = redirect === "subscription" ? "/dashboard/subscription" : "/dashboard";
+  return <Navigate to={dest} replace />;
+};
+
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
@@ -48,7 +70,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({
 };
 
 const AppRoutes: React.FC = () => {
-  const { user, loading } = useAuth();
+  const { loading } = useAuth();
 
   if (loading) {
     return (
@@ -62,10 +84,7 @@ const AppRoutes: React.FC = () => {
     <Routes>
       {/* Rotas Públicas */}
       <Route path="/" element={<LandingPage />} />
-      <Route
-        path="/login"
-        element={!user ? <LoginForm /> : <Navigate to="/dashboard" replace />}
-      />
+      <Route path="/login" element={<LoginRoute />} />
       <Route path="/submit/:folderId" element={<SubmitWork />} />
       <Route path="/espaco-docente" element={<EspacoDocente />} />
       <Route path="/professor/:slug" element={<TeacherProfile />} />
