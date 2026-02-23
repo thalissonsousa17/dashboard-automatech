@@ -10,6 +10,7 @@ import {
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { SubscriptionProvider } from "./contexts/SubscriptionContext";
 import Layout from "./components/Layout/Layout";
+import AdminLayout from "./components/Layout/AdminLayout";
 import LandingPage from "./pages/LandingPage";
 import LoginForm from "./components/Auth/LoginForm";
 import Dashboard from "./pages/Dashboard";
@@ -20,9 +21,6 @@ import AIAssistant from "./pages/AIAssistant";
 import SubmitWork from "./pages/SubmitWork";
 import TeacherProfile from "./pages/TeacherProfile";
 import MyProfile from "./pages/MyProfile";
-import AdminDashboard from "./pages/AdminDashboard";
-import AdminUserLogs from "./pages/AdminUserLogs";
-import AdminSuporteTickets from "./pages/AdminSuporteTickets";
 import SubscriptionPage from "./pages/SubscriptionPage";
 import FloatingAssistant from "./components/AI/FloatingAssistant";
 import AdminRoute from "./components/Auth/AdminRoute";
@@ -36,9 +34,9 @@ import StandaloneEditorPage from "./modules/editor/pages/StandaloneEditorPage";
 import { NotificationProvider } from "./contexts/NotificationContext";
 import { TicketProvider } from "./contexts/TicketContext";
 
-// Redireciona para /dashboard/subscription se vier da landing page com ?redirect=subscription
+// Redireciona admin → /dashboard/admin, professor → /dashboard
 const LoginRoute: React.FC = () => {
-  const { user, loading } = useAuth();
+  const { user, loading, isAdmin } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -53,7 +51,11 @@ const LoginRoute: React.FC = () => {
 
   const params = new URLSearchParams(location.search);
   const redirect = params.get("redirect");
-  const dest = redirect === "subscription" ? "/dashboard/subscription" : "/dashboard";
+
+  let dest = "/dashboard";
+  if (isAdmin) dest = "/dashboard/admin";
+  else if (redirect === "subscription") dest = "/dashboard/subscription";
+
   return <Navigate to={dest} replace />;
 };
 
@@ -86,75 +88,66 @@ const AppRoutes: React.FC = () => {
 
   return (
     <Routes>
-      {/* Rotas Públicas */}
+      {/* ── Rotas Públicas ────────────────────────────────────── */}
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginRoute />} />
       <Route path="/submit/:folderId" element={<SubmitWork />} />
       <Route path="/espaco-docente" element={<EspacoDocente />} />
       <Route path="/professor/:slug" element={<TeacherProfile />} />
 
-      {/* Rotas Protegidas (Dashboard) */}
+      {/* ── Painel Admin — layout próprio (dark sidebar) ──────── */}
+      <Route
+        path="/dashboard/admin/*"
+        element={
+          <ProtectedRoute>
+            <AdminRoute>
+              <NotificationProvider>
+                <TicketProvider>
+                  <AdminLayout />
+                </TicketProvider>
+              </NotificationProvider>
+            </AdminRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* ── Dashboard Professor ────────────────────────────────── */}
       <Route
         path="/dashboard/*"
         element={
           <ProtectedRoute>
             <NotificationProvider>
-            <TicketProvider>
-            <SubscriptionProvider>
-              {/* UpgradeModal é global — renderizado uma vez no topo */}
-              <UpgradeModal />
-              <Layout>
-                <Routes>
-                  <Route path="/" element={<Dashboard />} />
-                  <Route path="/publicar-post" element={<PublicarPost />} />
-                  <Route path="/espaco-docente" element={<EspacoDocente />} />
-                  <Route
-                    path="/student-submissions"
-                    element={<StudentSubmissionsWithAssistant />}
-                  />
-                  <Route path="/ai-assistant" element={<AIAssistant />} />
-                  <Route path="/gerador-provas" element={<ExamGenerator />} />
-                  {/* Premium: Workspaces, Pastas, Editor */}
-                  <Route path="/workspaces" element={<WorkspacePage />} />
-                  <Route path="/workspaces/:workspaceId" element={<WorkspacePage />} />
-                  <Route path="/workspaces/:workspaceId/folder/:folderId" element={<WorkspacePage />} />
-                  <Route path="/editor/:examId" element={<ExamEditorPage />} />
-                  {/* Editor de Documentos Standalone */}
-                  <Route path="/documents" element={<DocumentsPage />} />
-                  <Route path="/documents/:docId" element={<StandaloneEditorPage />} />
-                  {/* Suporte */}
-                  <Route path="/suporte" element={<Suporte />} />
-                  <Route path="/meu-perfil" element={<MyProfile />} />
-                  <Route path="/subscription" element={<SubscriptionPage />} />
-                  <Route
-                    path="/admin"
-                    element={
-                      <AdminRoute>
-                        <AdminDashboard />
-                      </AdminRoute>
-                    }
-                  />
-                  <Route
-                    path="/admin/logs"
-                    element={
-                      <AdminRoute>
-                        <AdminUserLogs />
-                      </AdminRoute>
-                    }
-                  />
-                  <Route
-                    path="/admin/tickets"
-                    element={
-                      <AdminRoute>
-                        <AdminSuporteTickets />
-                      </AdminRoute>
-                    }
-                  />
-                  <Route path="*" element={<Navigate to="/dashboard" />} />
-                </Routes>
-              </Layout>
-            </SubscriptionProvider>
-            </TicketProvider>
+              <TicketProvider>
+                <SubscriptionProvider>
+                  <UpgradeModal />
+                  <Layout>
+                    <Routes>
+                      <Route path="/" element={<Dashboard />} />
+                      <Route path="/publicar-post" element={<PublicarPost />} />
+                      <Route path="/espaco-docente" element={<EspacoDocente />} />
+                      <Route
+                        path="/student-submissions"
+                        element={<StudentSubmissionsWithAssistant />}
+                      />
+                      <Route path="/ai-assistant" element={<AIAssistant />} />
+                      <Route path="/gerador-provas" element={<ExamGenerator />} />
+                      {/* Premium */}
+                      <Route path="/workspaces" element={<WorkspacePage />} />
+                      <Route path="/workspaces/:workspaceId" element={<WorkspacePage />} />
+                      <Route path="/workspaces/:workspaceId/folder/:folderId" element={<WorkspacePage />} />
+                      <Route path="/editor/:examId" element={<ExamEditorPage />} />
+                      {/* Editor de Documentos */}
+                      <Route path="/documents" element={<DocumentsPage />} />
+                      <Route path="/documents/:docId" element={<StandaloneEditorPage />} />
+                      {/* Suporte */}
+                      <Route path="/suporte" element={<Suporte />} />
+                      <Route path="/meu-perfil" element={<MyProfile />} />
+                      <Route path="/subscription" element={<SubscriptionPage />} />
+                      <Route path="*" element={<Navigate to="/dashboard" />} />
+                    </Routes>
+                  </Layout>
+                </SubscriptionProvider>
+              </TicketProvider>
             </NotificationProvider>
           </ProtectedRoute>
         }
@@ -166,7 +159,7 @@ const AppRoutes: React.FC = () => {
   );
 };
 
-// Componente wrapper para Student Submissions com assistente IA
+// Wrapper Student Submissions com assistente IA
 const StudentSubmissionsWithAssistant: React.FC = () => {
   const [selectedText, setSelectedText] = useState("");
 
@@ -177,7 +170,6 @@ const StudentSubmissionsWithAssistant: React.FC = () => {
         setSelectedText(selection.toString());
       }
     };
-
     document.addEventListener("mouseup", handleTextSelection);
     return () => document.removeEventListener("mouseup", handleTextSelection);
   }, []);

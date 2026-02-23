@@ -15,12 +15,11 @@ import {
   FolderOpen,
   FileEdit,
   User,
-  Activity,
   LifeBuoy,
+  CreditCard,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import SubscriptionBadge from "../SubscriptionBadge";
-import { CreditCard } from "lucide-react";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -80,11 +79,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
     ...(isAdmin
       ? [
           {
-            label: "SISTEMA",
+            label: "ADMIN",
             items: [
               { to: "/dashboard/admin", icon: Shield, label: "Painel Admin" },
-              { to: "/dashboard/admin/logs", icon: Activity, label: "Logs de Uso" },
-              { to: "/dashboard/admin/tickets", icon: LifeBuoy, label: "Tickets de Suporte" },
             ],
           },
         ]
