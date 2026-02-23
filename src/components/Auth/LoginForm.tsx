@@ -206,7 +206,7 @@ const LoginForm: React.FC = () => {
 
             {/* Title */}
             <div className="mb-8">
-              <h1 className="text-3xl font-extrabold text-gray-900 mb-2">
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 mb-2">
                 {isSignUp ? "Criar sua conta" : "Bem-vindo de volta"}
               </h1>
               <p className="text-gray-500 text-sm">

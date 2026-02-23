@@ -505,7 +505,7 @@ const AutomatechLandingPage: React.FC = () => {
               },
               {
                 q: "A plataforma atende professores de todos os níveis de ensino?",
-                a: "Sim. O Automatech foi desenvolvido para atender professores do ensino fundamental, médio, técnico e superior, de instituições públicas ou privadas, além de profissionais autônomos e cursos livres.",
+                a: "Sim. O Edu Automatech foi desenvolvido para atender professores do ensino fundamental, médio, técnico e superior, de instituições públicas ou privadas, além de profissionais autônomos e cursos livres.",
               },
               {
                 q: "Posso fazer upgrade ou downgrade do meu plano?",
@@ -574,7 +574,7 @@ const AutomatechLandingPage: React.FC = () => {
                 key={plan.slug}
                 className={`relative flex flex-col rounded-2xl p-6 transition-all duration-200
                   ${plan.recommended
-                    ? "bg-white shadow-2xl ring-2 ring-blue-500 scale-105"
+                    ? "bg-white shadow-2xl ring-2 ring-blue-500 sm:scale-105"
                     : "bg-white/5 border border-white/10 hover:bg-white/10"
                   }`}
               >
