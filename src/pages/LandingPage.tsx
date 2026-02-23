@@ -15,7 +15,9 @@ import {
   X,
   Crown,
   MessageCircle,
+  Loader2,
 } from "lucide-react";
+import { supabase } from "../lib/supabase";
 
 // ─── Dados de planos (estáticos para a landing) ─────────────
 const LANDING_PLANS = [
@@ -82,6 +84,36 @@ const LANDING_PLANS = [
 ];
 
 const AutomatechLandingPage: React.FC = () => {
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+
+  const handleSubscribe = async (priceId: string, planSlug: string) => {
+    setLoadingPlan(planSlug);
+    try {
+      const frontendUrl = window.location.origin;
+      const { data, error } = await supabase.functions.invoke(
+        "create-checkout-session",
+        {
+          body: {
+            priceId,
+            successUrl: `${frontendUrl}/dashboard/subscription?success=true`,
+            cancelUrl: `${frontendUrl}/#pricing`,
+          },
+        },
+      );
+      if (error || !data?.url) {
+        console.error("Checkout error:", error || data);
+        alert("Erro ao iniciar checkout. Tente novamente.");
+        return;
+      }
+      window.location.href = data.url;
+    } catch (err) {
+      console.error("handleSubscribe error:", err);
+      alert("Erro ao iniciar checkout. Tente novamente.");
+    } finally {
+      setLoadingPlan(null);
+    }
+  };
+
   const benefits = [
     {
       icon: QrCode,
@@ -504,16 +536,25 @@ const AutomatechLandingPage: React.FC = () => {
                   </button>
                 ) : (
                   <button
-                    onClick={() => {
-                      if (plan.priceId) sessionStorage.setItem("pending_plan_id", plan.priceId);
-                      window.location.href = "/login?redirect=subscription";
-                    }}
-                    className={`w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-sm
+                    onClick={() =>
+                      plan.priceId && handleSubscribe(plan.priceId, plan.slug)
+                    }
+                    disabled={loadingPlan === plan.slug}
+                    className={`w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-sm disabled:opacity-70 disabled:cursor-not-allowed
                       ${plan.recommended
                         ? "bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white"
                         : "bg-white text-gray-900 hover:bg-blue-50"}`}
                   >
-                    Assinar agora <ArrowRight className="w-4 h-4" />
+                    {loadingPlan === plan.slug ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Aguarde...
+                      </>
+                    ) : (
+                      <>
+                        Assinar agora <ArrowRight className="w-4 h-4" />
+                      </>
+                    )}
                   </button>
                 )}
               </div>

@@ -1,5 +1,5 @@
 // Supabase Edge Function: create-checkout-session
-// Deploy: supabase functions deploy create-checkout-session
+// Deploy: npx supabase@latest functions deploy create-checkout-session --no-verify-jwt
 // Secrets: STRIPE_SECRET_KEY, SUPABASE_SERVICE_ROLE_KEY
 
 import Stripe from "https://esm.sh/stripe@14.21.0?target=deno";
@@ -12,7 +12,6 @@ const stripe = new Stripe(Deno.env.get("STRIPE_SECRET_KEY")!, {
 });
 
 Deno.serve(async (req) => {
-  // Preflight CORS
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
@@ -21,58 +20,73 @@ Deno.serve(async (req) => {
     const { priceId, userId, userEmail, successUrl, cancelUrl } =
       await req.json();
 
-    if (!priceId || !userId || !userEmail) {
+    if (!priceId) {
       return new Response(
-        JSON.stringify({ error: "priceId, userId e userEmail são obrigatórios" }),
+        JSON.stringify({ error: "priceId é obrigatório" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
-    // Verifica se já existe customer no Stripe para este email
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    // Busca customer_id existente na tabela subscriptions
-    const { data: subData } = await supabase
-      .from("subscriptions")
-      .select("stripe_customer_id")
-      .eq("user_id", userId)
-      .not("stripe_customer_id", "is", null)
-      .limit(1)
-      .single();
+    const frontendUrl = Deno.env.get("FRONTEND_URL") ??
+      "https://dashboard.automatech.app.br";
 
-    let customerId: string | undefined = subData?.stripe_customer_id ?? undefined;
+    // Busca customer existente (apenas se userId foi fornecido)
+    let customerId: string | undefined;
 
-    if (!customerId) {
-      // Tenta achar por email no Stripe
+    if (userId) {
+      const { data: subData } = await supabase
+        .from("subscriptions")
+        .select("stripe_customer_id")
+        .eq("user_id", userId)
+        .not("stripe_customer_id", "is", null)
+        .limit(1)
+        .single();
+
+      customerId = subData?.stripe_customer_id ?? undefined;
+    }
+
+    if (!customerId && userEmail) {
+      // Tenta encontrar customer existente no Stripe pelo email
       const existing = await stripe.customers.list({ email: userEmail, limit: 1 });
       if (existing.data.length > 0) {
         customerId = existing.data[0].id;
       } else {
-        // Cria novo customer
         const customer = await stripe.customers.create({
           email: userEmail,
-          metadata: { user_id: userId },
+          ...(userId ? { metadata: { user_id: userId } } : {}),
         });
         customerId = customer.id;
       }
     }
 
-    const session = await stripe.checkout.sessions.create({
-      customer: customerId,
+    // Monta os parâmetros da sessão
+    const sessionParams: Stripe.Checkout.SessionCreateParams = {
       payment_method_types: ["card"],
       mode: "subscription",
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: successUrl || `${Deno.env.get("FRONTEND_URL") ?? "https://dashboard.automatech.app.br"}/dashboard/subscription?success=true`,
-      cancel_url: cancelUrl || `${Deno.env.get("FRONTEND_URL") ?? "https://dashboard.automatech.app.br"}/dashboard/subscription?canceled=true`,
-      metadata: { user_id: userId },
-      subscription_data: {
-        metadata: { user_id: userId },
-      },
+      success_url: successUrl ||
+        `${frontendUrl}/dashboard/subscription?success=true`,
+      cancel_url: cancelUrl || `${frontendUrl}/#pricing`,
       locale: "pt-BR",
-    });
+      // Coleta email se o cliente não estiver identificado
+      ...(customerId
+        ? { customer: customerId }
+        : { customer_creation: "always" }),
+      // Inclui user_id nos metadados apenas se disponível (usuário logado)
+      ...(userId
+        ? {
+          metadata: { user_id: userId },
+          subscription_data: { metadata: { user_id: userId } },
+        }
+        : {}),
+    };
+
+    const session = await stripe.checkout.sessions.create(sessionParams);
 
     return new Response(
       JSON.stringify({ url: session.url, sessionId: session.id }),
