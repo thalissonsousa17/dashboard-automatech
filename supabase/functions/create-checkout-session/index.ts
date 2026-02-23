@@ -65,6 +65,8 @@ Deno.serve(async (req) => {
     }
 
     // Monta os parâmetros da sessão
+    // Nota: customer_creation é inválido em mode:"subscription" — o Stripe sempre cria um customer.
+    // Quando não há customerId, simplesmente omitimos o campo e o Stripe coleta o email no checkout.
     const sessionParams: Stripe.Checkout.SessionCreateParams = {
       payment_method_types: ["card"],
       mode: "subscription",
@@ -73,10 +75,8 @@ Deno.serve(async (req) => {
         `${frontendUrl}/dashboard/subscription?success=true`,
       cancel_url: cancelUrl || `${frontendUrl}/#pricing`,
       locale: "pt-BR",
-      // Coleta email se o cliente não estiver identificado
-      ...(customerId
-        ? { customer: customerId }
-        : { customer_creation: "always" }),
+      // Vincula ao customer existente se disponível; caso contrário o Stripe cria um novo
+      ...(customerId ? { customer: customerId } : {}),
       // Inclui user_id nos metadados apenas se disponível (usuário logado)
       ...(userId
         ? {

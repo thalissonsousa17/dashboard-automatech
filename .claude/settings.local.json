@@ -8,7 +8,9 @@
       "Bash(npx supabase@latest:*)",
       "Bash(git push:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(SUPABASE_ACCESS_TOKEN=sbp_60e7533aabbb17dc7c8bd48a3acc253b00fcdea9 npx supabase@latest secrets set RESEND_API_KEY=re_NEm6Re5G_BYokJjFVsdRZhgUAbrM1uXqW --project-ref xdfhpxevouhagsqcilnp)",
+      "Bash(SUPABASE_ACCESS_TOKEN=sbp_60e7533aabbb17dc7c8bd48a3acc253b00fcdea9 npx supabase@latest functions deploy:*)"
     ]
   }
 }

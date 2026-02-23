@@ -59,17 +59,32 @@ interface DocCardProps {
   item: HelpItem;
 }
 
-const DocCard: React.FC<DocCardProps> = ({ item }) => {
-  const hasUrl = item.url && item.url !== "#";
+const DocCard: React.FC<DocCardProps> = ({ item }): JSX.Element => {
+  const hasUrl = Boolean(item.url && item.url !== "#" && item.url.startsWith("http"));
+
+  if (!hasUrl) {
+    return (
+      <div className="group flex items-start gap-3 p-4 bg-white border border-gray-200 rounded-xl cursor-default">
+        <div className="w-9 h-9 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0">
+          <FileText className="w-4 h-4 text-blue-600" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-gray-900 leading-snug">
+            {item.title}
+          </p>
+          <p className="text-xs text-gray-400 mt-0.5">Em breve</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <a
-      href={hasUrl ? item.url! : undefined}
-      target={hasUrl ? "_blank" : undefined}
+      href={item.url!}
+      target="_blank"
       rel="noopener noreferrer"
-      className={`group flex items-start gap-3 p-4 bg-white border border-gray-200 rounded-xl transition-all hover:border-blue-300 hover:shadow-sm ${
-        hasUrl ? "cursor-pointer" : "cursor-default"
-      }`}
+      onClick={(e) => e.stopPropagation()}
+      className="group flex items-start gap-3 p-4 bg-white border border-gray-200 rounded-xl transition-all hover:border-blue-300 hover:shadow-sm cursor-pointer"
     >
       <div className="w-9 h-9 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-blue-100 transition-colors">
         <FileText className="w-4 h-4 text-blue-600" />
@@ -78,15 +93,9 @@ const DocCard: React.FC<DocCardProps> = ({ item }) => {
         <p className="text-sm font-semibold text-gray-900 group-hover:text-blue-700 transition-colors leading-snug">
           {item.title}
         </p>
-        {hasUrl ? (
-          <p className="text-xs text-gray-400 mt-0.5 truncate">{item.url}</p>
-        ) : (
-          <p className="text-xs text-gray-400 mt-0.5">Em breve</p>
-        )}
+        <p className="text-xs text-gray-400 mt-0.5 truncate">{item.url}</p>
       </div>
-      {hasUrl && (
-        <ExternalLink className="w-3.5 h-3.5 text-gray-300 group-hover:text-blue-500 flex-shrink-0 mt-0.5 transition-colors" />
-      )}
+      <ExternalLink className="w-3.5 h-3.5 text-gray-300 group-hover:text-blue-500 flex-shrink-0 mt-0.5 transition-colors" />
     </a>
   );
 };
