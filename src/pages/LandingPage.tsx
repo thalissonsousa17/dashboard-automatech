@@ -493,31 +493,23 @@ const AutomatechLandingPage: React.FC = () => {
             {[
               {
                 q: "Preciso de cartão de crédito para começar?",
-                a: "Não! O plano Gratuito não exige nenhum dado de pagamento. Você começa a usar imediatamente após criar sua conta, sem compromisso.",
+                a: "Não! O plano Gratuito não exige nenhum dado de pagamento. Você cria sua conta e começa a usar imediatamente, sem precisar cadastrar cartão.",
               },
               {
                 q: "Posso cancelar a qualquer momento?",
-                a: "Sim, você pode cancelar quando quiser diretamente pelo painel, em Configurações → Assinatura. O acesso premium continua até o fim do período pago.",
+                a: "Sim, sem burocracia. Acesse Configurações → Assinatura e cancele com um clique. Seu acesso premium permanece ativo até o fim do período já pago.",
               },
               {
-                q: "Minha página fica disponível para alunos?",
-                a: "Sim! Ao publicar materiais, seus alunos recebem um link único para acessar o conteúdo sem precisar criar conta. Basta compartilhar o link.",
+                q: "Minha página fica disponível para clientes?",
+                a: "Sim! Ao publicar seus materiais, você recebe um link público exclusivo para compartilhar com seus alunos. Eles acessam tudo sem precisar criar conta.",
               },
               {
-                q: "Funciona para professores autônomos e instituições?",
-                a: "Totalmente. A plataforma foi pensada tanto para professores individuais quanto para escolas e cursos. Cada professor tem seu próprio painel independente.",
+                q: "Funciona para professores autônomos e imobiliárias?",
+                a: "A Automatech foi construída para professores e educadores de qualquer segmento — autônomos, escolas particulares, cursos livres e qualquer profissional que precise organizar conteúdo e engajar seu público.",
               },
               {
                 q: "Os contratos da plataforma têm validade jurídica?",
-                a: "A Automatech é uma plataforma de gestão educacional. Para documentos com validade jurídica, recomendamos assinar digitalmente via DocuSign ou similares.",
-              },
-              {
-                q: "Como funciona a geração de provas com IA?",
-                a: "Você informa o tema, o nível de dificuldade, o tipo (múltipla escolha ou dissertativa) e a quantidade de questões. A IA gera uma prova completa com gabarito em menos de 2 minutos.",
-              },
-              {
-                q: "Meus dados estão seguros?",
-                a: "Sim. Utilizamos Supabase com criptografia de ponta a ponta, autenticação segura e backups automáticos. Seus dados nunca são compartilhados com terceiros.",
+                a: "A Automatech é uma plataforma de gestão educacional e publicação de conteúdo. Para documentos com validade jurídica, recomendamos assinar digitalmente via ferramentas como DocuSign ou Clicksign.",
               },
             ].map((item, i) => (
               <div
