@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { supabase } from "../../lib/supabase";
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const db = supabase as any;
 import {
   Lock,
   Mail,
@@ -34,13 +37,14 @@ const LoginForm: React.FC = () => {
   const [adminCode, setAdminCode]         = useState("");
   const [adminExists, setAdminExists]     = useState<boolean>(false);
   const [checkingAdmin, setCheckingAdmin] = useState(true);
+  const [successMsg, setSuccessMsg]       = useState("");
 
   const { signIn, signUp } = useAuth();
 
   useEffect(() => {
     const checkAdminExists = async () => {
       try {
-        const { count, error } = await supabase
+        const { count, error } = await db
           .from("profiles")
           .select("*", { count: "exact", head: true })
           .eq("role", "admin");
@@ -92,14 +96,14 @@ const LoginForm: React.FC = () => {
           setError(error.message || "Erro ao criar conta");
         } else {
           setError("");
-          alert(
-            role === "admin"
-              ? "Conta de Administrador criada! Verifique seu email e faça login."
-              : "Conta criada com sucesso! Verifique seu email e faça login.",
-          );
           setIsSignUp(false);
           setAdminCode("");
-          if (role === "admin") setAdminExists(true);
+          if (role === "admin") {
+            setAdminExists(true);
+            setSuccessMsg("Conta de Administrador criada! Faça login para continuar.");
+          } else {
+            setSuccessMsg("Conta criada com sucesso! Faça login para continuar.");
+          }
         }
       } catch {
         setError("Erro ao criar conta. Tente novamente.");
@@ -121,6 +125,7 @@ const LoginForm: React.FC = () => {
   const resetForm = () => {
     setIsSignUp(!isSignUp);
     setError("");
+    setSuccessMsg("");
     setEmail("");
     setPassword("");
     setConfirmPassword("");
@@ -215,6 +220,14 @@ const LoginForm: React.FC = () => {
                   : "Digite seu email e senha para acessar o painel."}
               </p>
             </div>
+
+            {/* Success */}
+            {successMsg && (
+              <div className="bg-green-50 border border-green-200 text-green-700 text-sm rounded-xl px-4 py-3 mb-5 flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 flex-shrink-0" />
+                {successMsg}
+              </div>
+            )}
 
             {/* Error */}
             {error && (
