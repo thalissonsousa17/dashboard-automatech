@@ -20,10 +20,12 @@ import {
   Mail,
   Send,
   ExternalLink,
+  Lock,
 } from "lucide-react";
 import { useTickets, Ticket as TicketType } from "../contexts/TicketContext";
 import TicketDrawer from "../components/Suporte/TicketDrawer";
 import NewTicketModal from "../components/Suporte/NewTicketModal";
+import { useSubscriptionContext } from "../contexts/SubscriptionContext";
 
 // ─── Types ────────────────────────────────────────────────────
 
@@ -140,6 +142,8 @@ const KB_CATEGORIES: KBCategory[] = [
 const Suporte: React.FC = () => {
   const location = useLocation();
   const { tickets, loading } = useTickets();
+  const { canAccess, openUpgradeModal } = useSubscriptionContext();
+  const hasSupport = canAccess("suporte");
 
   const [activeTab, setActiveTab]         = useState<Tab>("tickets");
   const [selectedTicket, setSelectedTicket] = useState<TicketType | null>(null);
@@ -179,6 +183,10 @@ const Suporte: React.FC = () => {
 
   const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!hasSupport) {
+      openUpgradeModal("suporte", "Suporte", undefined);
+      return;
+    }
     if (!contactSubject.trim() || !contactMessage.trim()) return;
     await createTicket(contactSubject.trim(), contactMessage.trim(), contactCategory);
     setContactSent(true);
@@ -218,6 +226,22 @@ const Suporte: React.FC = () => {
         <p className="text-sm text-gray-500 mt-1">Abra tickets, consulte a base de conhecimento ou entre em contato.</p>
       </div>
 
+      {/* Banner de plano bloqueado */}
+      {!hasSupport && (
+        <div className="mb-5 flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+          <Lock className="w-4 h-4 text-amber-600 flex-shrink-0" />
+          <p className="text-sm text-amber-800 flex-1">
+            Suporte por ticket disponível a partir do plano <strong>Starter</strong>. A Base de Conhecimento está disponível gratuitamente.
+          </p>
+          <button
+            onClick={() => openUpgradeModal("suporte", "Suporte", undefined)}
+            className="flex-shrink-0 px-3 py-1.5 text-xs font-semibold text-white bg-amber-500 hover:bg-amber-600 rounded-lg transition-colors"
+          >
+            Ver planos
+          </button>
+        </div>
+      )}
+
       {/* Tabs */}
       <div className="flex border-b border-gray-200 mb-6 gap-1">
         {(
@@ -226,25 +250,36 @@ const Suporte: React.FC = () => {
             { id: "knowledge", label: "Base de Conhecimento",   Icon: BookOpen },
             { id: "contact",   label: "Contato",                Icon: Phone },
           ] as { id: Tab; label: string; Icon: React.ElementType }[]
-        ).map(({ id, label, Icon }) => (
-          <button
-            key={id}
-            onClick={() => setActiveTab(id)}
-            className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
-              activeTab === id
-                ? "border-blue-600 text-blue-600"
-                : "border-transparent text-gray-500 hover:text-gray-700"
-            }`}
-          >
-            <Icon className="w-4 h-4" />
-            {label}
-            {id === "tickets" && tickets.length > 0 && (
-              <span className="ml-1 px-1.5 py-0.5 text-[10px] font-bold bg-gray-100 text-gray-600 rounded-full">
-                {tickets.length}
-              </span>
-            )}
-          </button>
-        ))}
+        ).map(({ id, label, Icon }) => {
+          const isLocked = !hasSupport && (id === "tickets" || id === "contact");
+          return (
+            <button
+              key={id}
+              onClick={() => {
+                if (isLocked) {
+                  openUpgradeModal("suporte", "Suporte", undefined);
+                  return;
+                }
+                setActiveTab(id);
+              }}
+              className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors ${
+                activeTab === id && !isLocked
+                  ? "border-blue-600 text-blue-600"
+                  : isLocked
+                  ? "border-transparent text-gray-300 cursor-not-allowed"
+                  : "border-transparent text-gray-500 hover:text-gray-700"
+              }`}
+            >
+              {isLocked ? <Lock className="w-3.5 h-3.5" /> : <Icon className="w-4 h-4" />}
+              {label}
+              {id === "tickets" && tickets.length > 0 && !isLocked && (
+                <span className="ml-1 px-1.5 py-0.5 text-[10px] font-bold bg-gray-100 text-gray-600 rounded-full">
+                  {tickets.length}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
       {/* ── TAB 1: Meus Tickets ──────────────────────────────── */}
@@ -253,7 +288,7 @@ const Suporte: React.FC = () => {
           <div className="flex justify-between items-center mb-4">
             <p className="text-sm text-gray-500">{tickets.length} ticket{tickets.length !== 1 ? "s" : ""} no total</p>
             <button
-              onClick={() => setShowNewTicket(true)}
+              onClick={() => hasSupport ? setShowNewTicket(true) : openUpgradeModal("suporte", "Suporte", undefined)}
               className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors shadow-sm"
             >
               <Plus className="w-4 h-4" /> Novo Ticket
@@ -270,7 +305,7 @@ const Suporte: React.FC = () => {
               <MessageSquare className="w-10 h-10 mx-auto mb-3 opacity-40" />
               <p className="text-sm">Você ainda não tem tickets abertos.</p>
               <button
-                onClick={() => setShowNewTicket(true)}
+                onClick={() => hasSupport ? setShowNewTicket(true) : openUpgradeModal("suporte", "Suporte", undefined)}
                 className="mt-4 px-4 py-2 text-sm font-semibold text-blue-600 border border-blue-200 rounded-xl hover:bg-blue-50 transition-colors"
               >
                 Abrir primeiro ticket
