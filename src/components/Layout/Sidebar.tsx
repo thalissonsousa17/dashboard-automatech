@@ -21,6 +21,8 @@ import {
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import SubscriptionBadge from "../SubscriptionBadge";
+import { useFeatureGate } from "../../hooks/useFeatureGate";
+import type { AllFeatureKey } from "../../types/subscription";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -32,6 +34,8 @@ interface NavItem {
   icon: React.ElementType;
   label: string;
   url?: string;
+  gatedFeature?: AllFeatureKey;
+  gatedLabel?: string;
 }
 
 interface NavSection {
@@ -41,6 +45,7 @@ interface NavSection {
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
   const { signOut, isAdmin, user, profile } = useAuth();
+  const { checkGate } = useFeatureGate();
 
   const sections: NavSection[] = [
     {
@@ -67,6 +72,8 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
           icon: QrCodeIcon,
           label: "QR Chamada",
           url: "https://qrchamada.automatech.app.br/login",
+          gatedFeature: "qr_chamada",
+          gatedLabel: "QR Chamada",
         },
       ],
     },
@@ -148,19 +155,29 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
               <div className="space-y-0.5">
                 {section.items.map((item) => {
                   const Icon = item.icon;
-                  return item.url ? (
-                    <a
-                      key={item.to}
-                      href={item.url}
-                      target="_self"
-                      rel="noopener noreferrer"
-                      onClick={closeOnMobile}
-                      className="flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                    >
-                      <Icon className="w-4 h-4 flex-shrink-0" />
-                      <span>{item.label}</span>
-                    </a>
-                  ) : (
+                  if (item.url) {
+                    const handleExternalClick = (e: React.MouseEvent) => {
+                      if (item.gatedFeature) {
+                        const ok = checkGate(item.gatedFeature, undefined, item.gatedLabel);
+                        if (!ok) { e.preventDefault(); return; }
+                      }
+                      closeOnMobile();
+                    };
+                    return (
+                      <a
+                        key={item.to}
+                        href={item.url}
+                        target="_self"
+                        rel="noopener noreferrer"
+                        onClick={handleExternalClick}
+                        className="flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                      >
+                        <Icon className="w-4 h-4 flex-shrink-0" />
+                        <span>{item.label}</span>
+                      </a>
+                    );
+                  }
+                  return (
                     <NavLink
                       key={item.to}
                       to={item.to}

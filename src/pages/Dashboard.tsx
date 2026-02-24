@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTeachingPosts } from '../hooks/useTeachingPosts';
 import { useNotes } from '../hooks/useNotes';
 import { useAuth } from '../contexts/AuthContext';
+import { useSubscriptionContext } from '../contexts/SubscriptionContext';
 import { supabase } from '../lib/supabase';
 import type { Note } from '../hooks/useNotes';
 import StatsCard from '../components/Dashboard/StatsCard';
@@ -65,6 +66,7 @@ const Dashboard: React.FC = () => {
   const { user, profile } = useAuth();
   const { posts, loading: postsLoading } = useTeachingPosts();
   const { notes, loading: notesLoading, createNote, updateNote, deleteNote } = useNotes();
+  const { canAccess, openUpgradeModal, getLimit } = useSubscriptionContext();
 
   // Remote stats
   const [examCount, setExamCount] = useState(0);
@@ -103,6 +105,14 @@ const Dashboard: React.FC = () => {
   }, [user]);
 
   const openNewNote = () => {
+    if (!canAccess('anotacoes', notes.length)) {
+      openUpgradeModal(
+        'anotacoes',
+        'Anotações',
+        getLimit('anotacoes') as number,
+      );
+      return;
+    }
     setEditingNote(null);
     setNoteForm({ title: '', content: '' });
     setShowNoteForm(true);
