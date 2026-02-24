@@ -1,5 +1,5 @@
 import { supabase } from '../../../lib/supabase';
-import type { Exam, ExamQuestion } from '../../../types';
+import type { Exam, ExamQuestion, ExamVersion, ExamAnswerKey } from '../../../types';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = supabase as any;
@@ -137,4 +137,190 @@ function openPrintWindow(html: string): void {
   win.focus();
   // Pequeno delay para garantir que o conteúdo carregou antes de imprimir
   setTimeout(() => win.print(), 600);
+}
+
+// ---------------------------------------------------------------------------
+// EXPORT DE VERSÃO ESPECÍFICA
+// ---------------------------------------------------------------------------
+
+/** Reordena questões e alternativas de acordo com o shuffling da versão */
+export function buildVersionQuestions(
+  version: ExamVersion,
+  originalQuestions: ExamQuestion[],
+): ExamQuestion[] {
+  const order = version.question_order as number[];
+  return order.map((originalIndex, newIndex) => {
+    const q = originalQuestions[originalIndex];
+    if (!q) return null as unknown as ExamQuestion;
+    if (q.question_type === 'multiple_choice' && version.alternatives_order[String(newIndex + 1)]) {
+      const altOrder = version.alternatives_order[String(newIndex + 1)] as string[];
+      const reorderedAlts = altOrder
+        .map((letter) => q.alternatives?.find((a) => a.letter === letter))
+        .filter(Boolean)
+        .map((a, i) => ({ letter: ['A', 'B', 'C', 'D', 'E'][i], text: a!.text }));
+      return { ...q, question_number: newIndex + 1, alternatives: reorderedAlts };
+    }
+    return { ...q, question_number: newIndex + 1 };
+  }).filter(Boolean);
+}
+
+/** Exporta uma versão específica (questões embaralhadas) como PDF via impressão */
+export function exportVersionToPdf(
+  exam: Exam,
+  version: ExamVersion,
+  originalQuestions: ExamQuestion[],
+): void {
+  const vQuestions = buildVersionQuestions(version, originalQuestions);
+  const bodyHtml = buildQuestionsHtml(vQuestions);
+
+  const difficultyLabel: Record<string, string> = {
+    easy: 'Fácil', medium: 'Médio', hard: 'Difícil',
+  };
+  const meta = [
+    exam.subject,
+    `Versão ${version.version_label}`,
+    exam.difficulty ? difficultyLabel[exam.difficulty] ?? exam.difficulty : null,
+  ].filter(Boolean).join(' • ');
+
+  const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>${exam.title} - Versão ${version.version_label}</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; font-size: 13px; line-height: 1.6; color: #111; max-width: 800px; margin: 0 auto; padding: 40px 32px; }
+    h1 { font-size: 20px; margin: 0 0 4px 0; }
+    .meta { color: #555; font-size: 12px; margin-bottom: 10px; }
+    .fields { display: flex; gap: 24px; font-size: 12px; margin-bottom: 16px; padding-bottom: 14px; border-bottom: 2px solid #ddd; }
+    @media print { body { padding: 20px; } button { display: none !important; } }
+  </style>
+</head>
+<body>
+  <h1>${exam.title}</h1>
+  <div class="meta">${meta}</div>
+  <div class="fields">
+    <span>Nome: ___________________________________________</span>
+    <span>Data: ___/___/______</span>
+  </div>
+  <div class="fields">
+    <span>Turma: ____________________</span>
+    <span>Matrícula: ____________________</span>
+  </div>
+  ${bodyHtml}
+</body>
+</html>`;
+
+  openPrintWindow(html);
+}
+
+// ---------------------------------------------------------------------------
+// EXPORT DE GABARITO
+// ---------------------------------------------------------------------------
+
+/** Exporta o gabarito de uma versão como PDF via impressão */
+export function exportAnswerKeyToPdf(
+  exam: Exam,
+  version: ExamVersion,
+  answerKey: ExamAnswerKey,
+): void {
+  const entries = Object.entries(answerKey.answers).sort(
+    ([a], [b]) => Number(a) - Number(b),
+  );
+
+  const rows = entries.map(([num, answer]) => `
+    <div class="row">
+      <span class="num">Q${num}</span>
+      <span class="ans ${answer === 'Dissertativa' ? 'essay' : ''}">${answer}</span>
+    </div>`).join('');
+
+  const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Gabarito - ${exam.title} - Versão ${version.version_label}</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; font-size: 13px; color: #111; max-width: 700px; margin: 0 auto; padding: 40px 32px; }
+    h1 { font-size: 18px; text-align: center; margin: 0 0 4px; }
+    .sub { text-align: center; font-size: 13px; color: #555; margin-bottom: 6px; }
+    .conf { text-align: center; font-size: 11px; color: #e00; margin-bottom: 16px; }
+    hr { border: none; border-top: 2px solid #ddd; margin-bottom: 16px; }
+    .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+    .row { display: flex; justify-content: space-between; align-items: center; background: #f9f9f9; border-radius: 6px; padding: 6px 10px; }
+    .num { font-size: 11px; color: #888; }
+    .ans { font-weight: bold; font-size: 15px; color: #16a34a; }
+    .essay { color: #ea580c; }
+    @media print { body { padding: 20px; } }
+  </style>
+</head>
+<body>
+  <h1>GABARITO OFICIAL</h1>
+  <div class="sub">${exam.title} — Versão ${version.version_label}</div>
+  <div class="conf">DOCUMENTO CONFIDENCIAL — USO EXCLUSIVO DO PROFESSOR</div>
+  <hr/>
+  <div class="grid">${rows}</div>
+</body>
+</html>`;
+
+  openPrintWindow(html);
+}
+
+/** Exporta os gabaritos de TODAS as versões em um único PDF */
+export function exportAllAnswerKeysToPdf(
+  exam: Exam,
+  versions: ExamVersion[],
+  answerKeys: ExamAnswerKey[],
+): void {
+  const sections = versions.map((v) => {
+    const ak = answerKeys.find((k) => k.version_id === v.id);
+    if (!ak) return `<div class="version-block"><h2>Versão ${v.version_label}</h2><p class="empty">Gabarito não disponível.</p></div>`;
+
+    const entries = Object.entries(ak.answers).sort(([a], [b]) => Number(a) - Number(b));
+    const rows = entries.map(([num, answer]) => `
+      <div class="row">
+        <span class="num">Q${num}</span>
+        <span class="ans ${answer === 'Dissertativa' ? 'essay' : ''}">${answer}</span>
+      </div>`).join('');
+
+    return `
+      <div class="version-block">
+        <h2>Versão ${v.version_label}</h2>
+        <div class="grid">${rows}</div>
+      </div>`;
+  }).join('');
+
+  const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Gabaritos - ${exam.title}</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; font-size: 13px; color: #111; max-width: 700px; margin: 0 auto; padding: 40px 32px; }
+    h1 { font-size: 18px; text-align: center; margin: 0 0 4px; }
+    .sub { text-align: center; font-size: 13px; color: #555; margin-bottom: 6px; }
+    .conf { text-align: center; font-size: 11px; color: #e00; margin-bottom: 16px; }
+    hr { border: none; border-top: 2px solid #ddd; margin-bottom: 20px; }
+    .version-block { margin-bottom: 28px; page-break-inside: avoid; }
+    .version-block h2 { font-size: 14px; font-weight: 700; color: #1d4ed8; border-left: 4px solid #1d4ed8; padding-left: 10px; margin-bottom: 10px; }
+    .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+    .row { display: flex; justify-content: space-between; align-items: center; background: #f9f9f9; border-radius: 5px; padding: 5px 8px; }
+    .num { font-size: 11px; color: #888; }
+    .ans { font-weight: bold; font-size: 14px; color: #16a34a; }
+    .essay { color: #ea580c; }
+    .empty { font-size: 12px; color: #999; font-style: italic; }
+    @media print { body { padding: 20px; } .version-block { page-break-inside: avoid; } }
+  </style>
+</head>
+<body>
+  <h1>GABARITOS OFICIAIS</h1>
+  <div class="sub">${exam.title}</div>
+  <div class="conf">DOCUMENTO CONFIDENCIAL — USO EXCLUSIVO DO PROFESSOR</div>
+  <hr/>
+  ${sections}
+</body>
+</html>`;
+
+  openPrintWindow(html);
 }

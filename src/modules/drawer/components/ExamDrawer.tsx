@@ -136,10 +136,10 @@ const ExamDrawer: React.FC<ExamDrawerProps> = ({
               <DrawerTabContent questions={questions} />
             )}
             {activeTab === 'gabarito' && (
-              <DrawerTabAnswerKey examId={exam.id} />
+              <DrawerTabAnswerKey examId={exam.id} exam={exam} />
             )}
             {activeTab === 'versions' && (
-              <DrawerTabVersions examId={exam.id} />
+              <DrawerTabVersions examId={exam.id} exam={exam} questions={questions} />
             )}
           </>
         )}
