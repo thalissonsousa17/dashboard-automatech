@@ -57,7 +57,7 @@ export const useSubscriptionContext = (): SubscriptionContextType => {
 export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const [currentPlan, setCurrentPlan] = useState<Plan | null>(null);
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -125,6 +125,8 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const canAccess = useCallback(
     (feature: AllFeatureKey, currentCount?: number): boolean => {
+      // Admin tem acesso ilimitado a todos os recursos
+      if (isAdmin) return true;
       if (!currentPlan) return false;
       const value = currentPlan.features[feature];
 
@@ -134,10 +136,10 @@ export const SubscriptionProvider: React.FC<{ children: React.ReactNode }> = ({
         if (currentCount !== undefined) return currentCount < value;
         return value > 0;
       }
-      if (typeof value === "string") return value !== "" && value !== "false";
+      if (typeof value === "string") return value !== false.toString() && value.length > 0;
       return false;
     },
-    [currentPlan],
+    [currentPlan, isAdmin],
   );
 
   const isPaidPlan = (currentPlan?.slug ?? "free") !== "free";

@@ -53,9 +53,9 @@ async function getProvasDoMes(userId: string): Promise<number> {
   start.setHours(0, 0, 0, 0);
 
   const { count } = await (supabase as any)
-    .from("provas")
+    .from("exams")
     .select("*", { count: "exact", head: true })
-    .eq("user_id", userId)
+    .eq("created_by", userId)
     .gte("created_at", start.toISOString());
 
   return count ?? 0;
