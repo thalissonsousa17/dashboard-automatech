@@ -4,8 +4,9 @@ import { supabase } from '../../../lib/supabase';
 import {
   exportAnswerKeyToPdf,
   exportAllAnswerKeysToPdf,
+  exportOriginalAnswerKeyToPdf,
 } from '../../shared/utils/examExport';
-import type { Exam, ExamAnswerKey, ExamVersion } from '../../../types';
+import type { Exam, ExamAnswerKey, ExamVersion, ExamQuestion } from '../../../types';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = supabase as any;
@@ -13,13 +14,14 @@ const db = supabase as any;
 interface DrawerTabAnswerKeyProps {
   examId: string;
   exam: Exam;
+  questions: ExamQuestion[];
 }
 
-const DrawerTabAnswerKey: React.FC<DrawerTabAnswerKeyProps> = ({ examId, exam }) => {
+const DrawerTabAnswerKey: React.FC<DrawerTabAnswerKeyProps> = ({ examId, exam, questions }) => {
   const [versions, setVersions] = useState<ExamVersion[]>([]);
   const [answerKeys, setAnswerKeys] = useState<ExamAnswerKey[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedVersion, setSelectedVersion] = useState<string | null>(null);
+  const [selectedVersion, setSelectedVersion] = useState<string | 'original'>('original');
   const [exportingId, setExportingId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -42,8 +44,10 @@ const DrawerTabAnswerKey: React.FC<DrawerTabAnswerKeyProps> = ({ examId, exam })
         setVersions(v);
         setAnswerKeys(ak);
 
-        if (v.length > 0) {
-          setSelectedVersion(v[0].id);
+        // Se não houver versões, mantém 'original'
+        // Se houver, e o selectedVersion ainda for null (primeira carga), mantém 'original' como padrão
+        if (v.length > 0 && selectedVersion === null) {
+          setSelectedVersion('original');
         }
       } catch (err) {
         console.error('Erro ao carregar gabarito:', err);
@@ -71,10 +75,21 @@ const DrawerTabAnswerKey: React.FC<DrawerTabAnswerKeyProps> = ({ examId, exam })
     );
   }
 
-  const currentKey = answerKeys.find((ak) => ak.version_id === selectedVersion);
-  const currentVersion = versions.find((v) => v.id === selectedVersion);
+  const isOriginal = selectedVersion === 'original';
+  const currentKey = isOriginal ? null : answerKeys.find((ak) => ak.version_id === selectedVersion);
+  const currentVersion = isOriginal ? null : versions.find((v) => v.id === selectedVersion);
 
   const handleDownloadCurrent = () => {
+    if (isOriginal) {
+      setExportingId('current');
+      try {
+        exportOriginalAnswerKeyToPdf(exam, questions);
+      } finally {
+        setTimeout(() => setExportingId(null), 800);
+      }
+      return;
+    }
+
     if (!currentVersion || !currentKey) return;
     setExportingId('current');
     try {
@@ -97,7 +112,17 @@ const DrawerTabAnswerKey: React.FC<DrawerTabAnswerKeyProps> = ({ examId, exam })
     <div>
       {/* Version Tabs + download buttons */}
       <div className="flex items-center justify-between mb-4 gap-2 flex-wrap">
-        <div className="flex space-x-1 overflow-x-auto">
+        <div className="flex space-x-1 overflow-x-auto pb-1">
+          <button
+            onClick={() => setSelectedVersion('original')}
+            className={`px-3 py-1.5 text-sm font-medium rounded-lg whitespace-nowrap transition-colors ${
+              selectedVersion === 'original'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            Original (IA)
+          </button>
           {versions.map((v) => (
             <button
               key={v.id}
@@ -117,12 +142,18 @@ const DrawerTabAnswerKey: React.FC<DrawerTabAnswerKeyProps> = ({ examId, exam })
         <div className="flex items-center gap-1.5 flex-shrink-0">
           <button
             onClick={handleDownloadCurrent}
-            disabled={!currentKey || exportingId === 'current'}
-            title={`Baixar gabarito da Versão ${currentVersion?.version_label}`}
+            disabled={(!isOriginal && (!currentKey || !currentVersion)) || exportingId === 'current'}
+            title={isOriginal ? 'Baixar gabarito original' : `Baixar gabarito da Versão ${currentVersion?.version_label}`}
             className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-green-700 bg-green-50 rounded-lg hover:bg-green-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
             <FileDown className="w-3.5 h-3.5" />
-            <span>{exportingId === 'current' ? 'Gerando...' : `Versão ${currentVersion?.version_label}`}</span>
+            <span>
+              {exportingId === 'current'
+                ? 'Gerando...'
+                : isOriginal
+                ? 'Original'
+                : `Versão ${currentVersion?.version_label}`}
+            </span>
           </button>
           <button
             onClick={handleDownloadAll}
@@ -137,33 +168,53 @@ const DrawerTabAnswerKey: React.FC<DrawerTabAnswerKeyProps> = ({ examId, exam })
       </div>
 
       {/* Answer Key Grid */}
-      {currentKey && currentVersion ? (
+      {(isOriginal && questions.length > 0) || (currentKey && currentVersion) ? (
         <div>
           <h4 className="text-sm font-semibold text-gray-700 mb-3">
-            Gabarito — Versão {currentVersion.version_label}
+            Gabarito — {isOriginal ? 'Original (IA)' : `Versão ${currentVersion?.version_label}`}
           </h4>
           <div className="grid grid-cols-5 gap-2">
-            {Object.entries(currentKey.answers)
-              .sort(([a], [b]) => Number(a) - Number(b))
-              .map(([num, answer]) => (
-                <div
-                  key={num}
-                  className="flex items-center justify-between p-2 bg-gray-50 rounded-lg"
-                >
-                  <span className="text-xs font-medium text-gray-500">
-                    Q{num}
-                  </span>
-                  <span
-                    className={`text-sm font-bold ${
-                      answer === 'Dissertativa'
-                        ? 'text-orange-600'
-                        : 'text-green-600'
-                    }`}
+            {isOriginal
+              ? questions.map((q) => (
+                  <div
+                    key={q.id}
+                    className="flex items-center justify-between p-2 bg-gray-50 rounded-lg"
                   >
-                    {answer}
-                  </span>
-                </div>
-              ))}
+                    <span className="text-xs font-medium text-gray-500">
+                      Q{q.question_number}
+                    </span>
+                    <span
+                      className={`text-sm font-bold ${
+                        q.question_type === 'essay'
+                          ? 'text-orange-600'
+                          : 'text-green-600'
+                      }`}
+                    >
+                      {q.question_type === 'essay' ? 'Diss.' : q.correct_answer}
+                    </span>
+                  </div>
+                ))
+              : Object.entries(currentKey!.answers)
+                  .sort(([a], [b]) => Number(a) - Number(b))
+                  .map(([num, answer]) => (
+                    <div
+                      key={num}
+                      className="flex items-center justify-between p-2 bg-gray-50 rounded-lg"
+                    >
+                      <span className="text-xs font-medium text-gray-500">
+                        Q{num}
+                      </span>
+                      <span
+                        className={`text-sm font-bold ${
+                          answer === 'Dissertativa'
+                            ? 'text-orange-600'
+                            : 'text-green-600'
+                        }`}
+                      >
+                        {answer === 'Dissertativa' ? 'Diss.' : answer}
+                      </span>
+                    </div>
+                  ))}
           </div>
         </div>
       ) : (

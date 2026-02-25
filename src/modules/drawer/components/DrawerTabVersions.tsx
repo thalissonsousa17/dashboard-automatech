@@ -4,6 +4,7 @@ import { supabase } from '../../../lib/supabase';
 import {
   exportExamToPdf,
   exportVersionToPdf,
+  exportAllVersionsAsPdf,
 } from '../../shared/utils/examExport';
 import type { Exam, ExamQuestion, ExamVersion } from '../../../types';
 
@@ -58,6 +59,17 @@ const DrawerTabVersions: React.FC<DrawerTabVersionsProps> = ({
     }
   };
 
+  const handleDownloadAll = async () => {
+    setExportingId('all');
+    try {
+      await exportAllVersionsAsPdf(exam, questions, versions);
+    } catch (err) {
+      console.error('Erro ao exportar tudo:', err);
+    } finally {
+      setTimeout(() => setExportingId(null), 800);
+    }
+  };
+
   const handleDownloadVersion = (version: ExamVersion) => {
     setExportingId(version.id);
     try {
@@ -80,9 +92,21 @@ const DrawerTabVersions: React.FC<DrawerTabVersionsProps> = ({
 
   return (
     <div className="space-y-3">
-      <p className="text-sm text-gray-500">
-        {versions.length} {versions.length === 1 ? 'versao' : 'versoes'} disponivel(eis)
-      </p>
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-gray-500">
+          {versions.length} {versions.length === 1 ? 'versao' : 'versoes'} disponivel(eis)
+        </p>
+        {versions.length > 0 && (
+          <button
+            onClick={handleDownloadAll}
+            disabled={exportingId === 'all'}
+            className="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 disabled:opacity-50 transition-colors"
+          >
+            <Layers className="w-3.5 h-3.5" />
+            <span>{exportingId === 'all' ? 'Gerando...' : 'Baixar Todas as Provas'}</span>
+          </button>
+        )}
+      </div>
 
       {/* ── Prova Original ──────────────────────────────────── */}
       <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50">

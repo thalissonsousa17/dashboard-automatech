@@ -324,3 +324,129 @@ export function exportAllAnswerKeysToPdf(
 
   openPrintWindow(html);
 }
+
+/** Exporta o gabarito original (IA) como PDF via impressão */
+export function exportOriginalAnswerKeyToPdf(
+  exam: Exam,
+  questions: ExamQuestion[],
+): void {
+  const rows = questions.map((q) => {
+    const answer = q.question_type === 'essay' ? 'Dissertativa' : (q.correct_answer || '-');
+    return `
+      <div class="row">
+        <span class="num">Q${q.question_number}</span>
+        <span class="ans ${answer === 'Dissertativa' ? 'essay' : ''}">${answer}</span>
+      </div>`;
+  }).join('');
+
+  const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Gabarito Original - ${exam.title}</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; font-size: 13px; color: #111; max-width: 700px; margin: 0 auto; padding: 40px 32px; }
+    h1 { font-size: 18px; text-align: center; margin: 0 0 4px; }
+    .sub { text-align: center; font-size: 13px; color: #555; margin-bottom: 6px; }
+    .conf { text-align: center; font-size: 11px; color: #e00; margin-bottom: 16px; }
+    hr { border: none; border-top: 2px solid #ddd; margin-bottom: 16px; }
+    .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+    .row { display: flex; justify-content: space-between; align-items: center; background: #f9f9f9; border-radius: 6px; padding: 6px 10px; }
+    .num { font-size: 11px; color: #888; }
+    .ans { font-weight: bold; font-size: 15px; color: #16a34a; }
+    .essay { color: #ea580c; }
+    @media print { body { padding: 20px; } }
+  </style>
+</head>
+<body>
+  <h1>GABARITO OFICIAL — ORIGINAL</h1>
+  <div class="sub">${exam.title} — Questões IA</div>
+  <div class="conf">DOCUMENTO CONFIDENCIAL — USO EXCLUSIVO DO PROFESSOR</div>
+  <hr/>
+  <div class="grid">${rows}</div>
+</body>
+</html>`;
+
+  openPrintWindow(html);
+}
+
+/** Exporta a prova original e todas as suas versões em um único PDF */
+export async function exportAllVersionsAsPdf(
+  exam: Exam,
+  questions: ExamQuestion[],
+  versions: ExamVersion[],
+): Promise<void> {
+  const difficultyLabel: Record<string, string> = {
+    easy: 'Fácil', medium: 'Médio', hard: 'Difícil',
+  };
+
+  const getMeta = (label: string) => [
+    exam.subject,
+    label,
+    exam.difficulty ? difficultyLabel[exam.difficulty] ?? exam.difficulty : null,
+  ].filter(Boolean).join(' • ');
+
+  // 1. Bloco Prova Original
+  const originalHtml = buildQuestionsHtml(questions);
+  let fullContent = `
+    <div class="page-break">
+      <h1>${exam.title}</h1>
+      <div class="meta">${getMeta('Original')}</div>
+      <div class="fields">
+        <span>Nome: ___________________________________________</span>
+        <span>Data: ___/___/______</span>
+      </div>
+      <div class="fields">
+        <span>Turma: ____________________</span>
+        <span>Matrícula: ____________________</span>
+      </div>
+      ${originalHtml}
+    </div>`;
+
+  // 2. Blocos das Versões
+  versions.forEach((v) => {
+    const vQuestions = buildVersionQuestions(v, questions);
+    const vHtml = buildQuestionsHtml(vQuestions);
+    fullContent += `
+      <div class="page-break">
+        <h1>${exam.title}</h1>
+        <div class="meta">${getMeta(`Versão ${v.version_label}`)}</div>
+        <div class="fields">
+          <span>Nome: ___________________________________________</span>
+          <span>Data: ___/___/______</span>
+        </div>
+        <div class="fields">
+          <span>Turma: ____________________</span>
+          <span>Matrícula: ____________________</span>
+        </div>
+        ${vHtml}
+      </div>`;
+  });
+
+  const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>${exam.title} - Coleção Completa</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; font-size: 13px; line-height: 1.6; color: #111; max-width: 800px; margin: 0 auto; padding: 0; }
+    h1 { font-size: 20px; margin: 0 0 4px 0; }
+    .meta { color: #555; font-size: 12px; margin-bottom: 10px; }
+    .fields { display: flex; gap: 24px; font-size: 12px; margin-bottom: 16px; padding-bottom: 14px; border-bottom: 2px solid #ddd; }
+    .page-break { padding: 40px 32px; page-break-after: always; }
+    .page-break:last-child { page-break-after: auto; }
+    @media print { 
+      .page-break { padding: 20px; }
+      button { display: none !important; } 
+    }
+  </style>
+</head>
+<body>
+  ${fullContent}
+</body>
+</html>`;
+
+  openPrintWindow(html);
+}
