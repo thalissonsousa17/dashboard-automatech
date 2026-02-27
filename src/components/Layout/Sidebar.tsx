@@ -71,7 +71,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
           to: "/dashboard/qr-chamada",
           icon: QrCodeIcon,
           label: "QR Chamada",
-          url: "https://qrchamada.automatech.app.br/login",
           gatedFeature: "qr_chamada",
           gatedLabel: "QR Chamada",
         },
@@ -177,12 +176,19 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onToggle }) => {
                       </a>
                     );
                   }
+                  const handleNavClick = (e: React.MouseEvent) => {
+                    if (item.gatedFeature) {
+                      const ok = checkGate(item.gatedFeature, undefined, item.gatedLabel);
+                      if (!ok) { e.preventDefault(); return; }
+                    }
+                    closeOnMobile();
+                  };
                   return (
                     <NavLink
                       key={item.to}
                       to={item.to}
                       end={item.to === "/dashboard"}
-                      onClick={closeOnMobile}
+                      onClick={handleNavClick}
                       className={({ isActive }) =>
                         `flex items-center space-x-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                           isActive

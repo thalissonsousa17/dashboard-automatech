@@ -34,6 +34,9 @@ import DocumentsPage from "./modules/editor/pages/DocumentsPage";
 import StandaloneEditorPage from "./modules/editor/pages/StandaloneEditorPage";
 import { NotificationProvider } from "./contexts/NotificationContext";
 import { TicketProvider } from "./contexts/TicketContext";
+import { Toaster } from "sonner";
+import QRChamada from "./pages/QRChamada";
+import QRAttendance from "./pages/QRAttendance";
 
 // Redireciona admin → /dashboard/admin, professor → /dashboard
 const LoginRoute: React.FC = () => {
@@ -95,6 +98,9 @@ const AppRoutes: React.FC = () => {
       <Route path="/submit/:folderId" element={<SubmitWork />} />
       <Route path="/espaco-docente" element={<EspacoDocente />} />
       <Route path="/professor/:slug" element={<TeacherProfile />} />
+      {/* QR Chamada — página pública de registro de presença */}
+      <Route path="/attendance/:sessionId" element={<QRAttendance />} />
+      <Route path="/presenca/:sessionId" element={<QRAttendance />} />
 
       {/* ── Painel Admin — layout próprio (dark sidebar) ──────── */}
       <Route
@@ -140,6 +146,8 @@ const AppRoutes: React.FC = () => {
                       {/* Editor de Documentos */}
                       <Route path="/documents" element={<DocumentsPage />} />
                       <Route path="/documents/:docId" element={<StandaloneEditorPage />} />
+                      {/* QR Chamada */}
+                      <Route path="/qr-chamada" element={<QRChamada />} />
                       {/* Ajuda + Suporte */}
                       <Route path="/ajuda"   element={<AjudaProfessor />} />
                       <Route path="/suporte" element={<Suporte />} />
@@ -192,6 +200,7 @@ const App: React.FC = () => {
     <Router>
       <AuthProvider>
         <AppRoutes />
+        <Toaster richColors position="top-right" />
       </AuthProvider>
     </Router>
   );
