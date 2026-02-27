@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { CheckCircle, User } from 'lucide-react';
 import { supabase } from '../lib/supabase';
@@ -9,6 +9,21 @@ const QRAttendance: React.FC = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [className, setClassName] = useState('');
+
+  useEffect(() => {
+    if (!sessionId) return;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (supabase as any)
+      .from('attendance_sessions')
+      .select('classes(name)')
+      .eq('id', sessionId)
+      .maybeSingle()
+      .then(({ data }: { data: { classes: { name: string } } | null }) => {
+        const name = data?.classes?.name;
+        if (name) setClassName(name);
+      });
+  }, [sessionId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -148,7 +163,9 @@ const QRAttendance: React.FC = () => {
           <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
             <User className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-xl font-bold text-white">Registro de Presença</h1>
+          <h1 className="text-xl font-bold text-white">
+            {className || 'Registro de Presença'}
+          </h1>
           <p className="text-blue-100 text-sm mt-1">Preencha seus dados para registrar presença</p>
         </div>
 
