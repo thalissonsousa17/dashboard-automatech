@@ -100,14 +100,18 @@ const BENEFITS = [
     description:
       "Alunos fazem a presença escaneando um QR Code. Sem papel, sem perda de tempo — controle total em segundos.",
     available: true,
+    featured: false,
+    highlights: [] as string[],
   },
   {
     icon: Brain,
     color: "purple",
-    title: "Provas com Inteligência Artificial",
+    title: "Gerador de Provas com IA",
     description:
-      "Gere provas completas com questões dissertativas e múltipla escolha em minutos. A IA cuida de tudo.",
+      "Crie provas completas em minutos com questões dissertativas e de múltipla escolha. A IA gera múltiplas versões automaticamente e produz o gabarito com QR Code para correção instantânea — sem esforço.",
     available: true,
+    featured: true,
+    highlights: ["Múltiplas versões por prova", "Gabarito com QR Code", "Dissertativas + Múltipla Escolha"],
   },
   {
     icon: FileText,
@@ -116,6 +120,8 @@ const BENEFITS = [
     description:
       "Centralize PDFs, vídeos e atividades em workspaces organizados. Seus alunos acessam tudo facilmente.",
     available: true,
+    featured: false,
+    highlights: [] as string[],
   },
   {
     icon: Users,
@@ -124,6 +130,8 @@ const BENEFITS = [
     description:
       "Organize disciplinas, acompanhe frequência e tenha relatórios completos de desempenho por aluno.",
     available: true,
+    featured: false,
+    highlights: [] as string[],
   },
   {
     icon: Zap,
@@ -132,6 +140,8 @@ const BENEFITS = [
     description:
       "Um sistema inteligente que corrige e fornece feedback personalizado para cada aluno automaticamente.",
     available: false,
+    featured: false,
+    highlights: [] as string[],
   },
   {
     icon: BarChart3,
@@ -140,6 +150,8 @@ const BENEFITS = [
     description:
       "Assistente virtual para análise de texto, automação de tarefas e suporte acadêmico em tempo real.",
     available: false,
+    featured: false,
+    highlights: [] as string[],
   },
 ];
 
@@ -260,10 +272,7 @@ const AutomatechLandingPage: React.FC = () => {
       {/* ── Hero section ──────────────────────────────────── */}
       <section className="relative z-10 pt-32 pb-24 px-4 sm:px-6 lg:px-8 overflow-hidden">
         <div className="max-w-7xl mx-auto text-center reveal-hidden">
-          <div className="inline-flex items-center gap-2 bg-white/5 backdrop-blur-xl border border-white/10 px-4 py-2 rounded-full mb-8 hover:bg-white/10 transition-colors cursor-default group">
-            <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(59,130,246,0.8)]" />
-            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/60 group-hover:text-white transition-colors">v4.0 Alpha • Intelligent Neural Engine</span>
-          </div>
+          
           
           <h1 className="text-6xl md:text-8xl font-black font-outfit tracking-tighter mb-8 leading-[0.9] text-white">
             <span className="reveal-hidden reveal-delay-100 inline-block pointer-events-none">Domine a sua</span> <br />
@@ -395,32 +404,55 @@ const AutomatechLandingPage: React.FC = () => {
               return (
                 <div
                   key={i}
-                  className={`group relative glass-card p-8 rounded-3xl border border-white/5 hover:border-white/20 transition-all duration-500 overflow-hidden reveal-hidden ${!b.available ? 'opacity-70 grayscale hover:grayscale-0' : ''}`}
+                  className={`group relative glass-card p-8 rounded-3xl border transition-all duration-500 overflow-hidden reveal-hidden
+                    ${!b.available ? 'opacity-70 grayscale hover:grayscale-0' : ''}
+                    ${b.featured
+                      ? 'lg:col-span-2 border-purple-500/30 hover:border-purple-500/50 shadow-[0_0_60px_-15px_rgba(168,85,247,0.25)]'
+                      : 'border-white/5 hover:border-white/20'
+                    }`}
                   style={{ transitionDelay: `${i * 100}ms` }}
                 >
-                  <div className={`absolute top-0 left-0 w-full h-1 bg-gradient-to-r ${c.bg.replace('/10', '/30')} opacity-0 group-hover:opacity-100 transition-opacity`} />
-                  
+                  <div className={`absolute top-0 left-0 w-full h-px ${b.featured ? 'bg-gradient-to-r from-purple-500/0 via-purple-500/60 to-purple-500/0' : `bg-gradient-to-r ${c.bg.replace('/10', '/30')} opacity-0 group-hover:opacity-100 transition-opacity`}`} />
+
                   {!b.available && (
-                    <div className="absolute top-6 right-6 flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/20 text-amber-400 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">
+                    <div className="absolute top-6 right-6 flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">
                       <Zap className="w-3 h-3" />
-                      Beta
+                      Novo
                     </div>
                   )}
 
-                  <div className={`w-14 h-14 ${c.bg} rounded-2xl flex items-center justify-center mb-8 border border-white/5 group-hover:scale-110 transition-transform duration-500 shadow-2xl ${c.glow}`}>
-                    <b.icon className={`w-7 h-7 ${c.icon}`} />
+                  {b.featured && (
+                    <div className="absolute top-6 right-6 flex items-center gap-1.5 bg-purple-500/15 border border-purple-500/30 text-purple-300 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">
+                      <Star className="w-3 h-3" />
+                      Destaque
+                    </div>
+                  )}
+
+                  <div className={`flex ${b.featured ? 'lg:flex-row flex-col gap-8' : 'flex-col'}`}>
+                    <div className={b.featured ? 'lg:flex-1' : ''}>
+                      <div className={`w-14 h-14 ${c.bg} rounded-2xl flex items-center justify-center mb-8 border border-white/5 group-hover:scale-110 transition-transform duration-500 shadow-2xl ${c.glow}`}>
+                        <b.icon className={`w-7 h-7 ${c.icon}`} />
+                      </div>
+
+                      <h4 className={`font-bold font-outfit text-white mb-4 group-hover:translate-x-1 transition-transform ${b.featured ? 'text-2xl' : 'text-xl'}`}>{b.title}</h4>
+                      <p className="text-white/40 text-sm leading-relaxed font-inter">
+                        {b.description}
+                      </p>
+                    </div>
+
+                    {b.featured && b.highlights.length > 0 && (
+                      <div className="lg:flex-1 flex flex-col justify-center gap-3 lg:border-l lg:border-white/5 lg:pl-8">
+                        {b.highlights.map((h, hi) => (
+                          <div key={hi} className="flex items-center gap-3 bg-purple-500/10 border border-purple-500/20 rounded-xl px-4 py-3">
+                            <div className="w-6 h-6 rounded-full bg-purple-500/20 flex items-center justify-center flex-shrink-0">
+                              <Check className="w-3 h-3 text-purple-400" />
+                            </div>
+                            <span className="text-sm font-semibold text-white/80">{h}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-
-                  <h4 className="text-xl font-bold font-outfit text-white mb-4 group-hover:translate-x-1 transition-transform">{b.title}</h4>
-                  <p className="text-white/40 text-sm leading-relaxed font-inter mb-6">
-                    {b.description}
-                  </p>
-                  
-                  {b.available && (
-                    <div className="flex items-center gap-2 text-blue-400 text-xs font-bold opacity-0 group-hover:opacity-100 group-hover:translate-x-0 -translate-x-2 transition-all">
-                      SAIBA MAIS <ChevronRight className="w-3 h-3" />
-                    </div>
-                  )}
                 </div>
               );
             })}
@@ -747,80 +779,130 @@ const AutomatechLandingPage: React.FC = () => {
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-x-12 gap-y-6 text-[10px] font-black tracking-widest text-white/30 uppercase border-t border-white/5 pt-12 reveal-hidden">
-            <span className="flex items-center gap-2 grayscale opacity-50"><CheckCircle className="w-3 h-3 text-blue-400" /> No setup fee</span>
-            <span className="flex items-center gap-2 grayscale opacity-50"><CheckCircle className="w-3 h-3 text-blue-400" /> Cancel anytime</span>
-            <span className="flex items-center gap-2 grayscale opacity-50"><CheckCircle className="w-3 h-3 text-blue-400" /> SECURE STRIPE PAY</span>
-            <span className="flex items-center gap-2 grayscale opacity-50"><CheckCircle className="w-3 h-3 text-blue-400" /> 24/7 Support</span>
+            <span className="flex items-center gap-2 grayscale opacity-50"><CheckCircle className="w-3 h-3 text-blue-400" /> SEM TAXA DE INSTALAÇÃO</span>
+            <span className="flex items-center gap-2 grayscale opacity-50"><CheckCircle className="w-3 h-3 text-blue-400" /> Cancele a qualquer momento.</span>
+            <span className="flex items-center gap-2 grayscale opacity-50"><CheckCircle className="w-3 h-3 text-blue-400" /> PAGAMENTO SEGURO STRIPE</span>
+            <span className="flex items-center gap-2 grayscale opacity-50"><CheckCircle className="w-3 h-3 text-blue-400" /> 24/7 Suporte</span>
           </div>
         </div>
       </section>
 
       {/* ── Footer ─────────────────────────────────────────── */}
-      <footer className="bg-slate-950 border-t border-white/5 text-white pt-32 pb-16 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+      <footer className="bg-slate-950 border-t border-white/5 text-white relative overflow-hidden">
+
+        {/* Ambient glows */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[1px] bg-gradient-to-r from-transparent via-blue-500/50 to-transparent" />
-        
-        <div className="max-w-7xl mx-auto">
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-16 mb-24">
-            <div className="col-span-1 sm:col-span-2 lg:col-span-1">
-              <div className="flex items-center gap-3 mb-8">
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+        <div className="absolute -top-40 left-1/4 w-96 h-96 bg-blue-600/5 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -top-40 right-1/4 w-96 h-96 bg-indigo-600/5 rounded-full blur-3xl pointer-events-none" />
+
+        {/* CTA Banner */}
+        <div className="border-b border-white/5 py-16 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-8">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-400 mb-2">Comece hoje</p>
+              <h3 className="text-2xl md:text-3xl font-black text-white">Transforme sua sala de aula com IA.</h3>
+            </div>
+            <button
+              onClick={() => window.open("/login", "_self")}
+              className="flex-shrink-0 flex items-center gap-2 px-8 py-4 bg-blue-600 hover:bg-blue-500 text-white font-black text-xs uppercase tracking-[0.2em] rounded-2xl transition-all hover:scale-105 active:scale-95 shadow-[0_8px_30px_-4px_rgba(37,99,235,0.4)]"
+            >
+              Acessar Dashboard <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* Main grid */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-12">
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-12 mb-20">
+
+            {/* Brand */}
+            <div className="col-span-2 lg:col-span-2">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/25">
                   <GraduationCap className="w-6 h-6 text-white" />
                 </div>
                 <span className="text-xl font-black font-outfit uppercase tracking-tighter">Automatech</span>
               </div>
               <p className="text-white/40 text-sm leading-relaxed mb-8 max-w-xs">
-                Empoderando educadores com tecnologia IA de ponta para transformar a sala de aula do futuro.
+                Empoderando educadores com tecnologia de IA para transformar a experiência de ensino.
               </p>
-              <div className="flex gap-4">
-                 {[1,2,3,4].map(i => <div key={i} className="w-10 h-10 rounded-full glass-card flex items-center justify-center text-white/40 hover:text-white hover:border-white/20 transition-all cursor-pointer"><Star className="w-4 h-4" /></div>)}
+              <div className="flex gap-3">
+                <a
+                  href="https://wa.me/5583986844693"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-9 h-9 rounded-xl border border-white/10 flex items-center justify-center text-white/30 hover:text-white hover:border-white/30 hover:bg-white/5 transition-all"
+                  title="WhatsApp"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                </a>
+                <div className="w-9 h-9 rounded-xl border border-white/10 flex items-center justify-center text-white/30 hover:text-white hover:border-white/30 hover:bg-white/5 transition-all cursor-pointer" title="Instagram">
+                  <Star className="w-4 h-4" />
+                </div>
+                <div className="w-9 h-9 rounded-xl border border-white/10 flex items-center justify-center text-white/30 hover:text-white hover:border-white/30 hover:bg-white/5 transition-all cursor-pointer" title="LinkedIn">
+                  <Users className="w-4 h-4" />
+                </div>
               </div>
             </div>
 
+            {/* Produto */}
             <div>
-              <p className="font-black text-[10px] uppercase tracking-[0.3em] mb-8 text-blue-400">Plataforma</p>
-              <ul className="space-y-4 text-sm text-white/40">
-                {["Neural CRM", "Smart QR", "IA Engine", "Analytics Hub"].map(i => <li key={i} className="hover:text-white transition-colors cursor-pointer">{i}</li>)}
+              <p className="font-black text-[10px] uppercase tracking-[0.3em] mb-6 text-blue-400">Produto</p>
+              <ul className="space-y-4">
+                {[
+                  { label: "Gerador de Provas", action: () => scrollTo("features") },
+                  { label: "QR Chamada", action: () => scrollTo("features") },
+                  { label: "Materiais Didáticos", action: () => scrollTo("features") },
+                  { label: "Planos", action: () => scrollTo("pricing") },
+                ].map(item => (
+                  <li key={item.label}>
+                    <button onClick={item.action} className="text-sm text-white/40 hover:text-white transition-colors text-left">
+                      {item.label}
+                    </button>
+                  </li>
+                ))}
               </ul>
             </div>
 
+            {/* Acesso */}
             <div>
-              <p className="font-black text-[10px] uppercase tracking-[0.3em] mb-8 text-blue-400">Nexus Hub</p>
-              <ul className="space-y-4 text-sm text-white/40">
-                <li className="hover:text-white transition-colors cursor-pointer">Central de Operações</li>
-                <li className="hover:text-white transition-colors cursor-pointer">Webinar Series</li>
-                <li className="hover:text-white transition-colors cursor-pointer">Developer API</li>
-                <li className="hover:text-white transition-colors cursor-pointer">Status Nexus</li>
+              <p className="font-black text-[10px] uppercase tracking-[0.3em] mb-6 text-blue-400">Acesso</p>
+              <ul className="space-y-4">
+                {[
+                  { label: "Entrar", action: () => window.open("/login", "_self") },
+                  { label: "Criar conta", action: () => scrollTo("pricing") },
+                  { label: "Suporte", action: () => window.open("https://wa.me/5583986844693", "_blank") },
+                ].map(item => (
+                  <li key={item.label}>
+                    <button onClick={item.action} className="text-sm text-white/40 hover:text-white transition-colors text-left">
+                      {item.label}
+                    </button>
+                  </li>
+                ))}
               </ul>
             </div>
 
+            {/* Legal */}
             <div>
-              <p className="font-black text-[10px] uppercase tracking-[0.3em] mb-8 text-blue-400">Terminal</p>
-              <ul className="space-y-4 text-sm text-white/40">
-                <li>
-                  <button onClick={() => window.open("/login", "_self")} className="hover:text-white transition-colors">
-                    Dashboard Access
-                  </button>
-                </li>
-                <li>
-                  <button onClick={() => scrollTo("pricing")} className="hover:text-white transition-colors">
-                    Initialize Account
-                  </button>
-                </li>
-                <li className="text-blue-500 font-bold">Protocol v4.0.2</li>
+              <p className="font-black text-[10px] uppercase tracking-[0.3em] mb-6 text-blue-400">Legal</p>
+              <ul className="space-y-4">
+                {["Termos de Uso", "Privacidade"].map(label => (
+                  <li key={label}>
+                    <span className="text-sm text-white/40 hover:text-white transition-colors cursor-pointer">{label}</span>
+                  </li>
+                ))}
               </ul>
             </div>
           </div>
 
-          <div className="border-t border-white/5 pt-12 flex flex-col md:flex-row items-center justify-between gap-8 text-[10px] font-black uppercase tracking-[0.2em] text-white/20">
-            <p>© {new Date().getFullYear()} Automatech Corporation. Precise Academic Intelligence.</p>
-            <div className="flex gap-8">
-               <span className="hover:text-white transition-all cursor-pointer">Legal Protocol</span>
-               <span className="hover:text-white transition-all cursor-pointer">Privacy Neural Link</span>
-               <span className="hover:text-white transition-all cursor-pointer">Cookies Cache</span>
-            </div>
+          {/* Bottom bar */}
+          <div className="border-t border-white/5 pt-10 flex items-center justify-center gap-3 text-[10px] font-black uppercase tracking-[0.2em] text-white/20">
+            <Zap className="w-3 h-3 text-blue-500/50" />
+            <p>© {new Date().getFullYear()} Automatech. Todos os direitos reservados.</p>
           </div>
         </div>
       </footer>
+      
 
       {/* WhatsApp Float Premium */}
       <a
