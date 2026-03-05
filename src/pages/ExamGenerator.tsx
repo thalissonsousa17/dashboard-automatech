@@ -1052,10 +1052,16 @@ const VersionsModal: React.FC<{
   versions: ExamVersion[];
   answerKeys: ExamAnswerKey[];
   onClose: () => void;
-}> = ({ exam, questions, versions, answerKeys, onClose }) => {
+  initialTemplateFile?: File | null;
+  initialTemplateText?: string | null;
+}> = ({ exam, questions, versions, answerKeys, onClose, initialTemplateFile, initialTemplateText }) => {
   const navigate = useNavigate();
   const [selectedVersion, setSelectedVersion] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [templateFile, setTemplateFile] = useState<File | null>(initialTemplateFile ?? null);
+  const [templateText, setTemplateText] = useState<string | null>(initialTemplateText ?? null);
+  const [extractingTemplate, setExtractingTemplate] = useState(false);
+  const templateInputRef = useRef<HTMLInputElement>(null);
   const qrRef = useRef<HTMLDivElement>(null);
 
   const getVersionQuestions = (version: ExamVersion): ExamQuestion[] => {
@@ -1196,24 +1202,48 @@ const VersionsModal: React.FC<{
   };
 
   const exportDOCX = async (version: ExamVersion) => {
-    const vQuestions = getVersionQuestions(version);
-    const children: Paragraph[] = [
-      new Paragraph({ text: exam.title, heading: HeadingLevel.HEADING_1, alignment: "center" as unknown as undefined }),
-      new Paragraph({ children: [new TextRun({ text: `Versão ${version.version_label} | ${exam.subject}`, italics: true, size: 22 })], alignment: "center" as unknown as undefined }),
-      new Paragraph({ children: [new TextRun({ text: "Nome: ________________________________  Data: ___/___/______", size: 22 })], spacing: { before: 300, after: 300 } }),
-    ];
-    for (const q of vQuestions) {
-      children.push(new Paragraph({ children: [new TextRun({ text: `${q.question_number}. `, bold: true, size: 24 }), new TextRun({ text: q.statement, size: 24 })], spacing: { before: 200 } }));
-      if (q.question_type === "multiple_choice") {
-        for (const alt of q.alternatives)
-          children.push(new Paragraph({ children: [new TextRun({ text: `    (${alt.letter}) ${alt.text}`, size: 22 })], spacing: { before: 60 } }));
-      } else {
-        for (let i = 0; i < 4; i++)
-          children.push(new Paragraph({ children: [new TextRun({ text: "___________________________________________", size: 22, color: "CCCCCC" })], spacing: { before: 100 } }));
+    setExporting(true);
+    try {
+      const vQuestions = getVersionQuestions(version);
+      const title = `${exam.title} - Versão ${version.version_label}`;
+
+      if (templateFile) {
+        try {
+          if (templateText !== null) {
+            // PDF ou TXT: usa texto extraído
+            const blob = await buildDocxFromText(templateText, vQuestions, title);
+            saveAs(blob, `${title}.docx`);
+          } else {
+            // DOCX/DOC: injeta via ZIP
+            const blob = await injectQuestionsIntoDocx(templateFile, vQuestions);
+            saveAs(blob, `${title} - ${templateFile.name}`);
+          }
+          return;
+        } catch (tmplErr) {
+          console.error("Erro ao aplicar modelo na versão:", tmplErr);
+          alert("Houve um erro ao aplicar o modelo. Baixando DOCX padrão.");
+        }
       }
-    }
-    const doc = new Document({ sections: [{ children }] });
-    saveAs(await Packer.toBlob(doc), `${exam.title} - Versao ${version.version_label}.docx`);
+
+      // Sem template — gera DOCX padrão
+      const children: Paragraph[] = [
+        new Paragraph({ text: title, heading: HeadingLevel.HEADING_1, alignment: "center" as unknown as undefined }),
+        new Paragraph({ children: [new TextRun({ text: `${exam.subject}`, italics: true, size: 22 })], alignment: "center" as unknown as undefined }),
+        new Paragraph({ children: [new TextRun({ text: "Nome: ________________________________  Data: ___/___/______", size: 22 })], spacing: { before: 300, after: 300 } }),
+      ];
+      for (const q of vQuestions) {
+        children.push(new Paragraph({ children: [new TextRun({ text: `${q.question_number}. `, bold: true, size: 24 }), new TextRun({ text: q.statement, size: 24 })], spacing: { before: 200 } }));
+        if (q.question_type === "multiple_choice") {
+          for (const alt of q.alternatives)
+            children.push(new Paragraph({ children: [new TextRun({ text: `    (${alt.letter}) ${alt.text}`, size: 22 })], spacing: { before: 60 } }));
+        } else {
+          for (let i = 0; i < 4; i++)
+            children.push(new Paragraph({ children: [new TextRun({ text: "___________________________________________", size: 22, color: "CCCCCC" })], spacing: { before: 100 } }));
+        }
+      }
+      const doc = new Document({ sections: [{ children }] });
+      saveAs(await Packer.toBlob(doc), `${title}.docx`);
+    } finally { setExporting(false); }
   };
 
   const selectedVersionData = versions.find((v) => v.id === selectedVersion);
@@ -1248,14 +1278,71 @@ const VersionsModal: React.FC<{
           <div className="flex-1 p-6 overflow-y-auto">
             {selectedVersionData ? (
               <div className="space-y-6">
+                {/* Modelo de prova para DOCX */}
+                <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                  <p className="text-xs font-semibold text-purple-700 mb-1">Modelo de Prova (opcional)</p>
+                  <p className="text-xs text-purple-500 mb-2">
+                    Anexe um modelo para aplicar ao DOCX das versões. Use <code className="bg-purple-100 px-1 rounded">{"{{QUESTOES}}"}</code> como marcador.
+                  </p>
+                  <input ref={templateInputRef} type="file" accept=".docx,.doc,.pdf,.txt" className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      const ext = file.name.split(".").pop()?.toLowerCase();
+                      if (!["docx", "doc", "pdf", "txt"].includes(ext || "")) {
+                        alert("Formato não suportado. Use DOCX, DOC, PDF ou TXT.");
+                        return;
+                      }
+                      if (templateInputRef.current) templateInputRef.current.value = "";
+                      if (ext === "txt") {
+                        const text = await file.text();
+                        setTemplateFile(file); setTemplateText(text);
+                      } else if (ext === "pdf") {
+                        setExtractingTemplate(true);
+                        try {
+                          const pdfjsLib = await import("pdfjs-dist");
+                          if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
+                            const version = pdfjsLib.version || "5.4.624";
+                            pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${version}/build/pdf.worker.min.mjs`;
+                          }
+                          const arrayBuffer = await file.arrayBuffer();
+                          const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
+                          const pages: string[] = [];
+                          for (let i = 1; i <= pdf.numPages; i++) {
+                            const page = await pdf.getPage(i);
+                            const content = await page.getTextContent();
+                            pages.push(content.items.map((item: any) => ("str" in item ? item.str : "")).join(" "));
+                          }
+                          setTemplateFile(file); setTemplateText(pages.join("\n").trim());
+                        } catch {
+                          alert("Não foi possível extrair o texto do PDF. Tente converter para TXT ou DOCX.");
+                        } finally { setExtractingTemplate(false); }
+                      } else {
+                        setTemplateFile(file); setTemplateText(null);
+                      }
+                    }}
+                  />
+                  {templateFile ? (
+                    <div className="flex items-center justify-between bg-white border border-purple-200 rounded px-2 py-1.5 text-xs text-purple-700">
+                      <span className="truncate max-w-[200px]">📄 {templateFile.name}</span>
+                      <button onClick={() => { setTemplateFile(null); setTemplateText(null); }} className="ml-2 text-purple-400 hover:text-red-500 font-bold">✕</button>
+                    </div>
+                  ) : (
+                    <button type="button" onClick={() => templateInputRef.current?.click()} disabled={extractingTemplate}
+                      className="w-full px-2 py-1.5 border border-dashed border-purple-300 rounded text-xs text-purple-600 hover:bg-purple-100 flex items-center justify-center gap-1 disabled:opacity-60">
+                      <Upload className="w-3 h-3" /> {extractingTemplate ? "Extraindo texto..." : "Selecionar modelo"}
+                    </button>
+                  )}
+                </div>
+
                 <div className="flex flex-wrap gap-2">
                   <button onClick={() => exportPDF(selectedVersionData)} disabled={exporting}
                     className="px-4 py-2 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 flex items-center space-x-2 text-sm font-medium">
                     <Download className="w-4 h-4" /><span>Exportar PDF</span>
                   </button>
-                  <button onClick={() => exportDOCX(selectedVersionData)}
-                    className="px-4 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 flex items-center space-x-2 text-sm font-medium">
-                    <Download className="w-4 h-4" /><span>Exportar DOCX</span>
+                  <button onClick={() => exportDOCX(selectedVersionData)} disabled={exporting}
+                    className="px-4 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 flex items-center space-x-2 text-sm font-medium disabled:opacity-50">
+                    <Download className="w-4 h-4" /><span>{templateFile ? "Baixar DOCX (com modelo)" : "Exportar DOCX"}</span>
                   </button>
                   {selectedAnswerKey && (
                     <button onClick={() => exportAnswerKeyPDF(selectedVersionData, selectedAnswerKey)}
@@ -1773,7 +1860,10 @@ const ExamGenerator: React.FC = () => {
       {showGenerateVersions && <GenerateVersionsModal onGenerate={handleGenerateVersions} onCancel={() => setShowGenerateVersions(false)} />}
       {showVersionsModal && activeExam && (
         <VersionsModal exam={activeExam} questions={activeQuestions} versions={versions} answerKeys={answerKeys}
-          onClose={() => { setShowVersionsModal(false); setActiveExam(null); setActiveQuestions([]); }} />
+          onClose={() => { setShowVersionsModal(false); setActiveExam(null); setActiveQuestions([]); }}
+          initialTemplateFile={activeTemplateFile}
+          initialTemplateText={activeTemplateText}
+        />
       )}
       {showQRScanner && <QRScannerModal onClose={() => setShowQRScanner(false)} />}
 
