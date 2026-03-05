@@ -827,7 +827,7 @@ const ExamReview: React.FC<{
   onExportAnswerKey: () => Promise<void>;
   onOpenEditor: () => void;
   templateFile: File | null;
-  onTemplateChange: (file: File | null) => void;
+  onTemplateChange: (file: File | null, text?: string | null) => void;
 }> = ({
   exam, questions, versions, answerKeys, onBack, onQuestionsChange, onRegenerateQuestion,
   onUpdateQuestion, onDeleteQuestion, onGenerateVersions, onViewVersions, onGenerateQuestions,
@@ -837,6 +837,7 @@ const ExamReview: React.FC<{
   const [editingId, setEditingId] = useState<string | null>(null);
   const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
   const [exportingDirect, setExportingDirect] = useState(false);
+  const [extractingTemplate, setExtractingTemplate] = useState(false);
   const templateInputRef = useRef<HTMLInputElement>(null);
 
   const handleSaveEdit = async (updated: ExamQuestion) => {
@@ -904,8 +905,36 @@ const ExamReview: React.FC<{
                   alert("Formato não suportado. Use DOCX, DOC, PDF ou TXT.");
                   return;
                 }
-                onTemplateChange(file);
                 if (templateInputRef.current) templateInputRef.current.value = "";
+                if (ext === "txt") {
+                  const text = await file.text();
+                  onTemplateChange(file, text);
+                } else if (ext === "pdf") {
+                  setExtractingTemplate(true);
+                  try {
+                    const pdfjsLib = await import("pdfjs-dist");
+                    if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
+                      const version = pdfjsLib.version || "5.4.624";
+                      pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${version}/build/pdf.worker.min.mjs`;
+                    }
+                    const arrayBuffer = await file.arrayBuffer();
+                    const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
+                    const pages: string[] = [];
+                    for (let i = 1; i <= pdf.numPages; i++) {
+                      const page = await pdf.getPage(i);
+                      const content = await page.getTextContent();
+                      pages.push(content.items.map((item: any) => ("str" in item ? item.str : "")).join(" "));
+                    }
+                    onTemplateChange(file, pages.join("\n").trim());
+                  } catch {
+                    alert("Não foi possível extrair o texto do PDF. Tente converter para TXT ou DOCX.");
+                  } finally {
+                    setExtractingTemplate(false);
+                  }
+                } else {
+                  // docx ou doc
+                  onTemplateChange(file, null);
+                }
               }}
             />
             {templateFile ? (
@@ -914,9 +943,9 @@ const ExamReview: React.FC<{
                 <button onClick={() => onTemplateChange(null)} className="ml-2 text-purple-400 hover:text-red-500 font-bold">✕</button>
               </div>
             ) : (
-              <button type="button" onClick={() => templateInputRef.current?.click()}
-                className="w-full px-2 py-1.5 border border-dashed border-purple-300 rounded text-xs text-purple-600 hover:bg-purple-100 flex items-center justify-center gap-1">
-                <Upload className="w-3 h-3" /> Selecionar modelo
+              <button type="button" onClick={() => templateInputRef.current?.click()} disabled={extractingTemplate}
+                className="w-full px-2 py-1.5 border border-dashed border-purple-300 rounded text-xs text-purple-600 hover:bg-purple-100 flex items-center justify-center gap-1 disabled:opacity-60">
+                <Upload className="w-3 h-3" /> {extractingTemplate ? "Extraindo texto..." : "Selecionar modelo"}
               </button>
             )}
           </div>
@@ -1656,7 +1685,7 @@ const ExamGenerator: React.FC = () => {
           onExportPDF={exportDirectPDF} onExportDOCX={exportDirectDOCX} onExportAnswerKey={exportDirectAnswerKeyPDF}
           onOpenEditor={() => navigate(`/dashboard/editor/${activeExam.id}`)}
           templateFile={activeTemplateFile}
-          onTemplateChange={(file) => { setActiveTemplateFile(file); setActiveTemplateText(null); }}
+          onTemplateChange={(file, text) => { setActiveTemplateFile(file); setActiveTemplateText(text ?? null); }}
         />
       ) : !showVersionsModal ? (
         <div className="space-y-6">
