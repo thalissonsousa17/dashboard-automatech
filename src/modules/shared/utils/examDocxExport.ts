@@ -68,11 +68,23 @@ export async function buildDocxFromText(
   return Packer.toBlob(doc);
 }
 
-/** Injeta questões em um DOCX existente via ZIP. Procura {{QUESTOES}} no XML. */
+/** Injeta questões em um DOCX existente via ZIP. Procura {{QUESTOES}} no XML.
+ *  Para arquivos .doc antigos (binário OLE), usa mammoth para extrair texto
+ *  e delega para buildDocxFromText. */
 export async function injectQuestionsIntoDocx(
   templateFile: File,
   questions: ExamQuestion[],
 ): Promise<Blob> {
+  const ext = templateFile.name.split('.').pop()?.toLowerCase();
+
+  // Arquivo .doc antigo (binário OLE) não é ZIP — usa mammoth para extrair texto
+  if (ext === 'doc') {
+    const mammoth = await import('mammoth');
+    const arrayBuffer = await templateFile.arrayBuffer();
+    const result = await mammoth.extractRawText({ arrayBuffer });
+    return buildDocxFromText(result.value || '', questions, templateFile.name.replace(/\.doc$/i, ''));
+  }
+
   const zip = new JSZip();
   await zip.loadAsync(await templateFile.arrayBuffer());
 
