@@ -4,6 +4,7 @@ import { useExams } from "../hooks/useExams";
 import { useAuth } from "../contexts/AuthContext";
 import { useSubscriptionContext } from "../contexts/SubscriptionContext";
 import { supabase } from "../lib/supabase";
+import { extractPdfTextPreserveLines } from "../lib/pdfExtract";
 import QRCode from "react-qr-code";
 import QRCodeLib from "qrcode";
 import jsPDF from "jspdf";
@@ -413,21 +414,9 @@ const CreateExamForm: React.FC<{
     } else if (ext === "pdf") {
       setExtractingTemplate(true);
       try {
-        const pdfjsLib = await import("pdfjs-dist");
-        if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
-          const version = pdfjsLib.version || "5.4.624";
-          pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${version}/build/pdf.worker.min.mjs`;
-        }
-        const arrayBuffer = await file.arrayBuffer();
-        const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
-        const pages: string[] = [];
-        for (let i = 1; i <= pdf.numPages; i++) {
-          const page = await pdf.getPage(i);
-          const content = await page.getTextContent();
-          pages.push(content.items.map((item: any) => ("str" in item ? item.str : "")).join(" "));
-        }
+        const text = await extractPdfTextPreserveLines(file);
         setTemplateFile(file);
-        setTemplateText(pages.join("\n").trim());
+        setTemplateText(text);
       } catch {
         alert("Não foi possível extrair o texto do PDF. Tente converter para TXT ou DOCX.");
       } finally {
@@ -912,20 +901,8 @@ const ExamReview: React.FC<{
                 } else if (ext === "pdf") {
                   setExtractingTemplate(true);
                   try {
-                    const pdfjsLib = await import("pdfjs-dist");
-                    if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
-                      const version = pdfjsLib.version || "5.4.624";
-                      pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${version}/build/pdf.worker.min.mjs`;
-                    }
-                    const arrayBuffer = await file.arrayBuffer();
-                    const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
-                    const pages: string[] = [];
-                    for (let i = 1; i <= pdf.numPages; i++) {
-                      const page = await pdf.getPage(i);
-                      const content = await page.getTextContent();
-                      pages.push(content.items.map((item: any) => ("str" in item ? item.str : "")).join(" "));
-                    }
-                    onTemplateChange(file, pages.join("\n").trim());
+                    const text = await extractPdfTextPreserveLines(file);
+                    onTemplateChange(file, text);
                   } catch {
                     alert("Não foi possível extrair o texto do PDF. Tente converter para TXT ou DOCX.");
                   } finally {
@@ -1300,20 +1277,8 @@ const VersionsModal: React.FC<{
                       } else if (ext === "pdf") {
                         setExtractingTemplate(true);
                         try {
-                          const pdfjsLib = await import("pdfjs-dist");
-                          if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
-                            const version = pdfjsLib.version || "5.4.624";
-                            pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${version}/build/pdf.worker.min.mjs`;
-                          }
-                          const arrayBuffer = await file.arrayBuffer();
-                          const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
-                          const pages: string[] = [];
-                          for (let i = 1; i <= pdf.numPages; i++) {
-                            const page = await pdf.getPage(i);
-                            const content = await page.getTextContent();
-                            pages.push(content.items.map((item: any) => ("str" in item ? item.str : "")).join(" "));
-                          }
-                          setTemplateFile(file); setTemplateText(pages.join("\n").trim());
+                          const text = await extractPdfTextPreserveLines(file);
+                          setTemplateFile(file); setTemplateText(text);
                         } catch {
                           alert("Não foi possível extrair o texto do PDF. Tente converter para TXT ou DOCX.");
                         } finally { setExtractingTemplate(false); }
