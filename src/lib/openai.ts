@@ -120,22 +120,34 @@ export class OpenAIService {
 
   async evaluatePDF(pdfContent: string, theme: string) {
     const prompt = `
-    Analise o seguinte texto de um trabalho acadêmico sobre "${theme}":
+Você recebeu um trabalho acadêmico para avaliar. O tema exigido pelo professor foi: "${theme}".
 
-    ${pdfContent}
+TEXTO DO TRABALHO:
+${pdfContent}
 
-    Forneça uma avaliação estruturada em JSON com exatamente estas chaves:
-    - "summary": resumo do trabalho (máximo 200 palavras)
-    - "grammar_score": nota de 0 a 10 para gramática (número)
-    - "coherence_score": nota de 0 a 10 para coerência com o tema (número)
-    - "suggested_grade": nota sugerida de 0 a 10 (número)
-    - "feedback": feedback detalhado para o aluno
+INSTRUÇÕES DE AVALIAÇÃO:
+1. Verifique se o conteúdo do trabalho está relacionado ao tema "${theme}".
+2. Se o trabalho NÃO tratar do tema proposto (ex: tema é saúde mas o trabalho é de matemática), isso é uma falha grave. Neste caso:
+   - "coherence_score" deve ser entre 0 e 2
+   - "suggested_grade" deve ser entre 0 e 3
+   - "feedback" deve indicar claramente que o trabalho não corresponde ao tema solicitado
+3. Se o trabalho tratar parcialmente do tema, as notas devem refletir isso proporcionalmente.
+4. Avalie gramática independentemente do tema.
 
-    Responda APENAS com o objeto JSON, sem texto adicional.
+Forneça a avaliação em JSON com exatamente estas chaves:
+- "summary": resumo do que o trabalho realmente aborda (máximo 150 palavras)
+- "grammar_score": nota de 0 a 10 para gramática e escrita (número)
+- "coherence_score": nota de 0 a 10 para aderência ao tema "${theme}" — 0 significa nenhuma relação com o tema (número)
+- "suggested_grade": nota final sugerida de 0 a 10, penalizada fortemente se o trabalho não corresponder ao tema (número)
+- "feedback": feedback direto ao aluno explicando os pontos positivos e negativos, mencionando explicitamente se o trabalho não correspondeu ao tema solicitado
+
+Responda APENAS com o objeto JSON, sem texto adicional.
     `;
 
     if (!this.apiKey) {
-      return this.getMockEvaluation();
+      throw new Error(
+        "Avaliação por IA indisponível no momento. Configure a chave da API para utilizar este recurso.",
+      );
     }
 
     try {
@@ -144,7 +156,7 @@ export class OpenAIService {
           {
             role: "system",
             content:
-              "Você é um professor experiente avaliando trabalhos acadêmicos. Responda sempre em JSON válido.",
+              "Você é um professor experiente e criterioso avaliando trabalhos acadêmicos. Sua avaliação deve ser justa e honesta: trabalhos que não correspondem ao tema proposto devem receber notas baixas e feedback claro explicando o problema. Responda sempre em JSON válido.",
           },
           { role: "user", content: prompt },
         ],
@@ -159,7 +171,7 @@ export class OpenAIService {
       return JSON.parse(cleanResponse);
     } catch (error) {
       console.error("Erro na avaliação IA:", error);
-      return this.getMockEvaluation();
+      throw error;
     }
   }
 
@@ -175,17 +187,7 @@ export class OpenAIService {
     return responses[Math.floor(Math.random() * responses.length)];
   }
 
-  private getMockEvaluation() {
-    return {
-      summary:
-        "Trabalho bem estruturado que aborda os principais conceitos do tema proposto. Demonstra compreensão adequada dos fundamentos teóricos.",
-      grammar_score: Math.floor(Math.random() * 3) + 7,
-      coherence_score: Math.floor(Math.random() * 3) + 7,
-      suggested_grade: Math.floor(Math.random() * 3) + 7,
-      feedback:
-        "Bom trabalho! Recomendo aprofundar alguns conceitos e adicionar mais exemplos práticos para enriquecer a análise.",
-    };
-  }
+  // getMockEvaluation removido — avaliação simulada mascarava erros reais e gerava notas falsas.
 }
 
 export const openAIService = new OpenAIService();

@@ -3,6 +3,30 @@ import { supabase } from "../lib/supabase";
 import { openAIService } from "../lib/openai";
 import { SubmissionFolder, StudentSubmission } from "../types";
 import { useAuth } from "./useAuth";
+import * as pdfjsLib from "pdfjs-dist";
+
+// Worker do pdfjs — necessário para extração de texto no browser
+pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+  "pdfjs-dist/build/pdf.worker.min.mjs",
+  import.meta.url,
+).toString();
+
+async function extractPdfText(fileUrl: string): Promise<string> {
+  const response = await fetch(fileUrl);
+  if (!response.ok) throw new Error("Não foi possível baixar o arquivo PDF.");
+  const arrayBuffer = await response.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  const pages: string[] = [];
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    const pageText = content.items
+      .map((item: any) => ("str" in item ? item.str : ""))
+      .join(" ");
+    pages.push(pageText);
+  }
+  return pages.join("\n").trim();
+}
 
 // Mock data para demonstração
 export const mockFolders: SubmissionFolder[] = [
@@ -346,14 +370,19 @@ export const useStudentSubmissions = () => {
       const folder = folders.find((f) => f.id === submission.folder_id);
       const theme = folder?.assignment_theme || "Trabalho acadêmico";
 
-      // Simular conteúdo do PDF para avaliação
-      const mockPdfContent = `
-        Este é um trabalho sobre ${theme}. 
-        O trabalho aborda os principais conceitos e apresenta uma análise detalhada do tema.
-        Inclui exemplos práticos e demonstra compreensão dos fundamentos teóricos.
-      `;
+      if (!submission.file_url) {
+        throw new Error("Arquivo do trabalho não encontrado.");
+      }
 
-      const evaluation = await openAIService.evaluatePDF(mockPdfContent, theme);
+      const pdfText = await extractPdfText(submission.file_url);
+
+      if (!pdfText || pdfText.length < 50) {
+        throw new Error(
+          "Não foi possível extrair texto do PDF. Verifique se o arquivo não está protegido ou corrompido.",
+        );
+      }
+
+      const evaluation = await openAIService.evaluatePDF(pdfText, theme);
 
       // Atualizar submissão com avaliação
       setSubmissions((prev) =>
