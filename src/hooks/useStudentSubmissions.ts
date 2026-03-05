@@ -3,15 +3,13 @@ import { supabase } from "../lib/supabase";
 import { openAIService } from "../lib/openai";
 import { SubmissionFolder, StudentSubmission } from "../types";
 import { useAuth } from "./useAuth";
-import * as pdfjsLib from "pdfjs-dist";
-
-// Worker do pdfjs — necessário para extração de texto no browser
-pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
-  "pdfjs-dist/build/pdf.worker.min.mjs",
-  import.meta.url,
-).toString();
 
 async function extractPdfText(fileUrl: string): Promise<string> {
+  const pdfjsLib = await import("pdfjs-dist");
+  if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
+    const version = pdfjsLib.version || "5.4.624";
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${version}/build/pdf.worker.min.mjs`;
+  }
   const response = await fetch(fileUrl);
   if (!response.ok) throw new Error("Não foi possível baixar o arquivo PDF.");
   const arrayBuffer = await response.arrayBuffer();
