@@ -160,6 +160,60 @@ function replaceParagraphByTextContent(
   return found ? result : null;
 }
 
+/** Gera DOCX a partir de texto plano (TXT/PDF) como template.
+ *  Se o texto contiver {{QUESTOES}}, as questões são injetadas nesse ponto.
+ *  Caso contrário, as questões são appendadas ao final. */
+async function buildDocxFromText(
+  templateText: string,
+  questions: ExamQuestion[],
+  title: string,
+): Promise<Blob> {
+  const { Document, Packer, Paragraph, TextRun, HeadingLevel } = await import("docx");
+  const questionsXml = buildQuestionsXML(questions);
+  const MARKER = /\{\{[Qq][Uu][Ee][Ss][Tt][OoÕõ][Ee][Ss]\}\}/;
+
+  // Se tiver marcador, usar como ponto de injeção via XML direto não é viável com a lib docx,
+  // então dividimos o texto e construímos os parágrafos em torno das questões.
+  const parts = templateText.split(MARKER);
+  const textBefore = parts[0] || "";
+  const textAfter = parts.length > 1 ? parts[1] : "";
+
+  const toParas = (text: string) =>
+    text.split("\n").map(
+      (line) => new Paragraph({ children: [new TextRun({ text: line.trimEnd() })] }),
+    );
+
+  // Para as questões, reutilizamos a geração padrão de DOCX
+  const questionParas: import("docx").Paragraph[] = [];
+  questions.forEach((q, idx) => {
+    questionParas.push(
+      new Paragraph({ text: `${idx + 1}. ${q.question}`, heading: HeadingLevel.HEADING_3, spacing: { before: 300 } }),
+    );
+    if (q.options) {
+      ["A", "B", "C", "D", "E"].forEach((letter, i) => {
+        if (q.options![i]) {
+          questionParas.push(new Paragraph({ children: [new TextRun({ text: `  ${letter}) ${q.options![i]}` })] }));
+        }
+      });
+    } else {
+      for (let i = 0; i < 4; i++) {
+        questionParas.push(new Paragraph({ children: [new TextRun({ text: "___________________________________________", color: "CCCCCC", size: 22 })], spacing: { before: 100 } }));
+      }
+    }
+  });
+
+  const doc = new Document({
+    sections: [{
+      children: [
+        ...(textBefore ? toParas(textBefore) : [new Paragraph({ text: title, heading: HeadingLevel.HEADING_1, alignment: "center" as any })]),
+        ...questionParas,
+        ...toParas(textAfter),
+      ],
+    }],
+  });
+  return Packer.toBlob(doc);
+}
+
 async function injectQuestionsIntoDocx(
   templateFile: File,
   questions: ExamQuestion[],
@@ -210,7 +264,7 @@ async function injectQuestionsIntoDocx(
 
 // ---- FORMULÁRIO DE CRIAÇÃO ----
 const CreateExamForm: React.FC<{
-  onSubmit: (input: CreateExamInput, templateFile?: File) => Promise<void>;
+  onSubmit: (input: CreateExamInput, templateFile?: File, templateText?: string | null) => Promise<void>;
   onCancel: () => void;
 }> = ({ onSubmit, onCancel }) => {
   const [form, setForm] = useState<CreateExamInput>(() => {
@@ -261,6 +315,8 @@ const CreateExamForm: React.FC<{
   const [extracting, setExtracting] = useState(false);
 
   const [templateFile, setTemplateFile] = useState<File | null>(null);
+  const [templateText, setTemplateText] = useState<string | null>(null);
+  const [extractingTemplate, setExtractingTemplate] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const templateInputRef = useRef<HTMLInputElement>(null);
@@ -339,17 +395,49 @@ const CreateExamForm: React.FC<{
     }
   };
 
-  const handleTemplateUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleTemplateUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const ext = file.name.split(".").pop()?.toLowerCase();
-    if (ext !== "docx") {
-      alert("O modelo deve ser um arquivo .docx (Word).");
+    if (!["docx", "doc", "pdf", "txt"].includes(ext || "")) {
+      alert("Formato não suportado. Use DOCX, DOC, PDF ou TXT.");
       if (templateInputRef.current) templateInputRef.current.value = "";
       return;
     }
-    setTemplateFile(file);
     if (templateInputRef.current) templateInputRef.current.value = "";
+
+    if (ext === "txt") {
+      const text = await file.text();
+      setTemplateFile(file);
+      setTemplateText(text);
+    } else if (ext === "pdf") {
+      setExtractingTemplate(true);
+      try {
+        const pdfjsLib = await import("pdfjs-dist");
+        if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
+          const version = pdfjsLib.version || "5.4.624";
+          pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${version}/build/pdf.worker.min.mjs`;
+        }
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
+        const pages: string[] = [];
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const content = await page.getTextContent();
+          pages.push(content.items.map((item: any) => ("str" in item ? item.str : "")).join(" "));
+        }
+        setTemplateFile(file);
+        setTemplateText(pages.join("\n").trim());
+      } catch {
+        alert("Não foi possível extrair o texto do PDF. Tente converter para TXT ou DOCX.");
+      } finally {
+        setExtractingTemplate(false);
+      }
+    } else {
+      // docx ou doc — comportamento existente
+      setTemplateFile(file);
+      setTemplateText(null);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -357,7 +445,7 @@ const CreateExamForm: React.FC<{
     setSubmitting(true);
     setSubmitError(null);
     try {
-      await onSubmit(form, templateFile || undefined);
+      await onSubmit(form, templateFile || undefined, templateText);
       clearDraft();
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : "Erro desconhecido");
@@ -573,13 +661,13 @@ const CreateExamForm: React.FC<{
               <div>
                 <p className="text-sm font-semibold text-purple-800">Modelo de Prova (opcional)</p>
                 <p className="text-xs text-purple-600 mt-0.5">
-                  Suba um Word (.docx) com seu layout. As questões serão inseridas onde estiver o marcador{" "}
+                  Suba um arquivo com seu layout (DOCX, DOC, PDF ou TXT). As questões serão inseridas onde estiver o marcador{" "}
                   <code className="bg-purple-100 px-1 rounded font-mono">{"{{QUESTOES}}"}</code>
                 </p>
               </div>
             </div>
 
-            <input ref={templateInputRef} type="file" accept=".docx" onChange={handleTemplateUpload} className="hidden" />
+            <input ref={templateInputRef} type="file" accept=".docx,.doc,.pdf,.txt" onChange={handleTemplateUpload} className="hidden" />
 
             {templateFile ? (
               <div className="flex items-center justify-between bg-white border border-purple-200 rounded-lg px-3 py-2 text-sm">
@@ -593,10 +681,10 @@ const CreateExamForm: React.FC<{
                 </button>
               </div>
             ) : (
-              <button type="button" onClick={() => templateInputRef.current?.click()}
-                className="w-full px-3 py-2.5 border-2 border-dashed border-purple-300 rounded-lg hover:border-purple-500 hover:bg-purple-100 transition-colors flex items-center justify-center space-x-2 text-sm text-purple-600">
+              <button type="button" onClick={() => templateInputRef.current?.click()} disabled={extractingTemplate}
+                className="w-full px-3 py-2.5 border-2 border-dashed border-purple-300 rounded-lg hover:border-purple-500 hover:bg-purple-100 transition-colors flex items-center justify-center space-x-2 text-sm text-purple-600 disabled:opacity-60">
                 <Upload className="w-4 h-4" />
-                <span>Selecionar modelo .docx</span>
+                <span>{extractingTemplate ? "Extraindo texto..." : "Selecionar modelo (DOCX, DOC, PDF, TXT)"}</span>
               </button>
             )}
 
@@ -1308,6 +1396,7 @@ const ExamGenerator: React.FC = () => {
   const [loadingExam, setLoadingExam] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [activeTemplateFile, setActiveTemplateFile] = useState<File | null>(null);
+  const [activeTemplateText, setActiveTemplateText] = useState<string | null>(null);
   const [genOptions, setGenOptions] = useState<Partial<CreateExamInput>>({});
 
   useEffect(() => {
@@ -1339,7 +1428,7 @@ const ExamGenerator: React.FC = () => {
     setShowCreateForm(true);
   };
 
-  const handleCreateExam = async (input: CreateExamInput, templateFile?: File) => {
+  const handleCreateExam = async (input: CreateExamInput, templateFile?: File, templateText?: string | null) => {
     setErrorMessage(null);
     setGenOptions(input);
     const exam = await createExam(input);
@@ -1352,6 +1441,7 @@ const ExamGenerator: React.FC = () => {
         const questions = await generateQuestions(exam, input);
         setActiveQuestions(questions);
         if (templateFile) setActiveTemplateFile(templateFile);
+        if (templateText !== undefined) setActiveTemplateText(templateText ?? null);
       } catch (genErr) {
         const msg = genErr instanceof Error ? genErr.message : "Erro desconhecido";
         setActiveQuestions([]);
@@ -1477,6 +1567,13 @@ const ExamGenerator: React.FC = () => {
     if (!activeExam || activeQuestions.length === 0) return;
     if (activeTemplateFile) {
       try {
+        // PDF ou TXT: usa texto extraído para gerar DOCX
+        if (activeTemplateText !== null) {
+          const blob = await buildDocxFromText(activeTemplateText, activeQuestions, activeExam.title);
+          saveAs(blob, `${activeExam.title} - ${activeTemplateFile.name.replace(/\.(pdf|txt)$/i, "")}.docx`);
+          return;
+        }
+        // DOCX/DOC: injeta via ZIP
         const blob = await injectQuestionsIntoDocx(activeTemplateFile, activeQuestions);
         saveAs(blob, `${activeExam.title} - ${activeTemplateFile.name}`);
         return;
