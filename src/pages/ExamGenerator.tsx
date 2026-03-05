@@ -826,14 +826,18 @@ const ExamReview: React.FC<{
   onExportDOCX: () => Promise<void>;
   onExportAnswerKey: () => Promise<void>;
   onOpenEditor: () => void;
+  templateFile: File | null;
+  onTemplateChange: (file: File | null) => void;
 }> = ({
   exam, questions, versions, answerKeys, onBack, onQuestionsChange, onRegenerateQuestion,
   onUpdateQuestion, onDeleteQuestion, onGenerateVersions, onViewVersions, onGenerateQuestions,
   generating, onExportPDF, onExportDOCX, onExportAnswerKey, onOpenEditor,
+  templateFile, onTemplateChange,
 }) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
   const [exportingDirect, setExportingDirect] = useState(false);
+  const templateInputRef = useRef<HTMLInputElement>(null);
 
   const handleSaveEdit = async (updated: ExamQuestion) => {
     await onUpdateQuestion(updated.id, updated);
@@ -884,6 +888,39 @@ const ExamReview: React.FC<{
       {questions.length > 0 && (
         <div className="bg-white rounded-xl border border-gray-200 p-4">
           <h3 className="text-sm font-semibold text-gray-700 mb-3">Exportar / Baixar Prova</h3>
+
+          {/* Modelo de prova para DOCX */}
+          <div className="mb-3 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+            <p className="text-xs font-semibold text-purple-700 mb-1">Modelo de Prova (opcional)</p>
+            <p className="text-xs text-purple-500 mb-2">
+              Anexe um DOCX com seu layout. Coloque <code className="bg-purple-100 px-1 rounded">{"{{QUESTOES}}"}</code> onde as questões devem aparecer.
+            </p>
+            <input ref={templateInputRef} type="file" accept=".docx,.doc,.pdf,.txt" className="hidden"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                const ext = file.name.split(".").pop()?.toLowerCase();
+                if (!["docx", "doc", "pdf", "txt"].includes(ext || "")) {
+                  alert("Formato não suportado. Use DOCX, DOC, PDF ou TXT.");
+                  return;
+                }
+                onTemplateChange(file);
+                if (templateInputRef.current) templateInputRef.current.value = "";
+              }}
+            />
+            {templateFile ? (
+              <div className="flex items-center justify-between bg-white border border-purple-200 rounded px-2 py-1.5 text-xs text-purple-700">
+                <span className="truncate max-w-[180px]">📄 {templateFile.name}</span>
+                <button onClick={() => onTemplateChange(null)} className="ml-2 text-purple-400 hover:text-red-500 font-bold">✕</button>
+              </div>
+            ) : (
+              <button type="button" onClick={() => templateInputRef.current?.click()}
+                className="w-full px-2 py-1.5 border border-dashed border-purple-300 rounded text-xs text-purple-600 hover:bg-purple-100 flex items-center justify-center gap-1">
+                <Upload className="w-3 h-3" /> Selecionar modelo
+              </button>
+            )}
+          </div>
+
           <div className="flex flex-wrap gap-2">
             <button onClick={() => handleDirectExport(onExportPDF)} disabled={exportingDirect}
               className="px-4 py-2 bg-red-50 text-red-700 rounded-lg hover:bg-red-100 flex items-center space-x-2 text-sm font-medium disabled:opacity-50">
@@ -891,7 +928,7 @@ const ExamReview: React.FC<{
             </button>
             <button onClick={() => handleDirectExport(onExportDOCX)} disabled={exportingDirect}
               className="px-4 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 flex items-center space-x-2 text-sm font-medium disabled:opacity-50">
-              <Download className="w-4 h-4" /><span>Baixar DOCX</span>
+              <Download className="w-4 h-4" /><span>{templateFile ? "Baixar DOCX (com modelo)" : "Baixar DOCX"}</span>
             </button>
             <button onClick={() => handleDirectExport(onExportAnswerKey)} disabled={exportingDirect}
               className="px-4 py-2 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 flex items-center space-x-2 text-sm font-medium disabled:opacity-50">
@@ -1618,6 +1655,8 @@ const ExamGenerator: React.FC = () => {
           generating={generating}
           onExportPDF={exportDirectPDF} onExportDOCX={exportDirectDOCX} onExportAnswerKey={exportDirectAnswerKeyPDF}
           onOpenEditor={() => navigate(`/dashboard/editor/${activeExam.id}`)}
+          templateFile={activeTemplateFile}
+          onTemplateChange={(file) => { setActiveTemplateFile(file); setActiveTemplateText(null); }}
         />
       ) : !showVersionsModal ? (
         <div className="space-y-6">
