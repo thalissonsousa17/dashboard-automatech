@@ -120,26 +120,31 @@ export class OpenAIService {
 
   async evaluatePDF(pdfContent: string, theme: string) {
     const prompt = `
-Você recebeu um trabalho acadêmico para avaliar. O tema exigido pelo professor foi: "${theme}".
+Você é um professor avaliando um trabalho acadêmico. O tema EXATO exigido foi: "${theme}".
 
 TEXTO DO TRABALHO:
 ${pdfContent}
 
-INSTRUÇÕES DE AVALIAÇÃO:
-1. Verifique se o conteúdo do trabalho está relacionado ao tema "${theme}".
-2. Se o trabalho NÃO tratar do tema proposto (ex: tema é saúde mas o trabalho é de matemática), isso é uma falha grave. Neste caso:
-   - "coherence_score" deve ser entre 0 e 2
-   - "suggested_grade" deve ser entre 0 e 3
-   - "feedback" deve indicar claramente que o trabalho não corresponde ao tema solicitado
-3. Se o trabalho tratar parcialmente do tema, as notas devem refletir isso proporcionalmente.
+REGRAS DE AVALIAÇÃO — SIGA À RISCA:
+
+ATENÇÃO: Não basta o trabalho ser da mesma área geral. Ele deve abordar ESPECIFICAMENTE o tema "${theme}".
+Exemplo: se o tema é "Mecanismos de Lesão Celular e Inflamação", um trabalho sobre "História Natural das Doenças" ou "Processo Saúde-Doença" NÃO atende ao tema — mesmo que ambos sejam da área de saúde.
+
+1. Leia o trabalho e identifique com precisão QUAL ASSUNTO ele trata.
+2. Compare esse assunto com o tema exato: "${theme}".
+3. Classifique a aderência:
+   - TOTALMENTE FORA DO TEMA (o trabalho trata de outro assunto, mesmo que da mesma área): coherence_score 0–2, suggested_grade 0–3
+   - PARCIALMENTE RELACIONADO (aborda aspectos periféricos ou tangenciais do tema): coherence_score 3–5, suggested_grade 3–6
+   - DIRETAMENTE RELACIONADO (o trabalho aborda o tema com clareza, mesmo que superficialmente): coherence_score 6–8, suggested_grade 6–8
+   - PLENAMENTE ADEQUADO (trabalho aprofundado e focado no tema): coherence_score 9–10, suggested_grade 8–10
 4. Avalie gramática independentemente do tema.
 
 Forneça a avaliação em JSON com exatamente estas chaves:
-- "summary": resumo do que o trabalho realmente aborda (máximo 150 palavras)
+- "summary": descreva o que o trabalho REALMENTE aborda — não o que o tema pede (máximo 150 palavras)
 - "grammar_score": nota de 0 a 10 para gramática e escrita (número)
-- "coherence_score": nota de 0 a 10 para aderência ao tema "${theme}" — 0 significa nenhuma relação com o tema (número)
-- "suggested_grade": nota final sugerida de 0 a 10, penalizada fortemente se o trabalho não corresponder ao tema (número)
-- "feedback": feedback direto ao aluno explicando os pontos positivos e negativos, mencionando explicitamente se o trabalho não correspondeu ao tema solicitado
+- "coherence_score": nota de 0 a 10 para aderência ao tema EXATO "${theme}" conforme as regras acima (número)
+- "suggested_grade": nota final de 0 a 10, fortemente penalizada se o trabalho não tratar do tema exato (número)
+- "feedback": explique ao aluno o que o trabalho abordou, se corresponde ou não ao tema solicitado e o motivo da nota
 
 Responda APENAS com o objeto JSON, sem texto adicional.
     `;
@@ -156,7 +161,7 @@ Responda APENAS com o objeto JSON, sem texto adicional.
           {
             role: "system",
             content:
-              "Você é um professor experiente e criterioso avaliando trabalhos acadêmicos. Sua avaliação deve ser justa e honesta: trabalhos que não correspondem ao tema proposto devem receber notas baixas e feedback claro explicando o problema. Responda sempre em JSON válido.",
+              "Você é um professor experiente e criterioso avaliando trabalhos acadêmicos. Avalie com rigor se o trabalho trata ESPECIFICAMENTE do tema solicitado — não se contente com o mesmo campo de conhecimento. Dois temas da mesma área (ex: saúde) mas com foco diferente devem ser tratados como não aderentes. Seja direto e honesto no feedback. Responda sempre em JSON válido.",
           },
           { role: "user", content: prompt },
         ],
