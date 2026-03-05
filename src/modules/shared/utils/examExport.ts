@@ -371,6 +371,71 @@ export function exportOriginalAnswerKeyToPdf(
   openPrintWindow(html);
 }
 
+/** Exporta a folha de respostas em branco para os alunos preencherem */
+export function exportAnswerSheetToPdf(
+  exam: Exam,
+  questions: ExamQuestion[],
+  version?: ExamVersion,
+): void {
+  const mcQuestions = questions.filter((q) => q.question_type === 'multiple_choice');
+  if (mcQuestions.length === 0) {
+    alert('Esta prova não possui questões de múltipla escolha para a folha de respostas.');
+    return;
+  }
+
+  const label = version ? `Versão ${version.version_label}` : 'Original';
+
+  const rows = mcQuestions
+    .map((q) => {
+      const circles = ['A', 'B', 'C', 'D', 'E']
+        .map(
+          (l) =>
+            `<span class="circle">${l}</span>`,
+        )
+        .join('');
+      return `<div class="row"><span class="num">${q.question_number}.</span><div class="circles">${circles}</div></div>`;
+    })
+    .join('');
+
+  const html = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Folha de Respostas - ${exam.title} - ${label}</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; font-size: 13px; color: #111; max-width: 700px; margin: 0 auto; padding: 40px 32px; }
+    h1 { font-size: 18px; text-align: center; margin: 0 0 4px; }
+    .sub { text-align: center; font-size: 12px; color: #555; margin-bottom: 4px; }
+    .label { text-align: center; font-size: 11px; color: #888; margin-bottom: 16px; }
+    .fields { display: flex; gap: 24px; font-size: 12px; margin-bottom: 8px; }
+    hr { border: none; border-top: 2px solid #ddd; margin: 12px 0 20px; }
+    .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px 24px; }
+    .row { display: flex; align-items: center; gap: 8px; padding: 4px 0; border-bottom: 1px solid #f0f0f0; }
+    .num { font-weight: bold; font-size: 13px; width: 22px; text-align: right; flex-shrink: 0; }
+    .circles { display: flex; gap: 6px; }
+    .circle {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 22px; height: 22px; border-radius: 50%;
+      border: 1.5px solid #555; font-size: 11px; font-weight: bold; color: #333;
+    }
+    @media print { body { padding: 20px; } button { display: none !important; } }
+  </style>
+</head>
+<body>
+  <h1>FOLHA DE RESPOSTAS</h1>
+  <div class="sub">${exam.title}</div>
+  <div class="label">${exam.subject} — ${label}</div>
+  <div class="fields"><span>Nome: ___________________________________________</span><span>Data: ___/___/______</span></div>
+  <div class="fields"><span>Turma: ____________________</span><span>Matrícula: ____________________</span></div>
+  <hr/>
+  <div class="grid">${rows}</div>
+</body>
+</html>`;
+
+  openPrintWindow(html);
+}
+
 /** Exporta a prova original e todas as suas versões em um único PDF */
 export async function exportAllVersionsAsPdf(
   exam: Exam,

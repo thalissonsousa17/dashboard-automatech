@@ -1,11 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { FileDown, Layers } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { FileDown, Layers, Upload, FileText } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import {
   exportExamToPdf,
   exportVersionToPdf,
   exportAllVersionsAsPdf,
+  exportAnswerSheetToPdf,
 } from '../../shared/utils/examExport';
+import {
+  exportOriginalDOCX,
+  exportVersionDOCX,
+} from '../../shared/utils/examDocxExport';
 import type { Exam, ExamQuestion, ExamVersion } from '../../../types';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -25,6 +30,12 @@ const DrawerTabVersions: React.FC<DrawerTabVersionsProps> = ({
   const [versions, setVersions] = useState<ExamVersion[]>([]);
   const [loading, setLoading] = useState(true);
   const [exportingId, setExportingId] = useState<string | null>(null);
+
+  // Template de prova
+  const [templateFile, setTemplateFile] = useState<File | null>(null);
+  const [templateText, setTemplateText] = useState<string | null>(null);
+  const [extractingTemplate, setExtractingTemplate] = useState(false);
+  const templateInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const fetchVersions = async () => {
@@ -48,15 +59,74 @@ const DrawerTabVersions: React.FC<DrawerTabVersionsProps> = ({
     fetchVersions();
   }, [examId]);
 
-  const handleDownloadOriginal = async () => {
-    setExportingId('original');
+  const handleTemplateChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    if (!['docx', 'doc', 'pdf', 'txt'].includes(ext || '')) {
+      alert('Formato não suportado. Use DOCX, DOC, PDF ou TXT.');
+      return;
+    }
+    if (templateInputRef.current) templateInputRef.current.value = '';
+
+    if (ext === 'txt') {
+      const text = await file.text();
+      setTemplateFile(file);
+      setTemplateText(text);
+    } else if (ext === 'pdf') {
+      setExtractingTemplate(true);
+      try {
+        const pdfjsLib = await import('pdfjs-dist');
+        if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
+          const version = pdfjsLib.version || '5.4.624';
+          pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${version}/build/pdf.worker.min.mjs`;
+        }
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
+        const pages: string[] = [];
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const content = await page.getTextContent();
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          pages.push(content.items.map((item: any) => ('str' in item ? item.str : '')).join(' '));
+        }
+        setTemplateFile(file);
+        setTemplateText(pages.join('\n').trim());
+      } catch {
+        alert('Não foi possível extrair o texto do PDF. Tente converter para TXT ou DOCX.');
+      } finally {
+        setExtractingTemplate(false);
+      }
+    } else {
+      setTemplateFile(file);
+      setTemplateText(null);
+    }
+  };
+
+  const handleDownloadOriginalPDF = async () => {
+    setExportingId('original-pdf');
     try {
       await exportExamToPdf(examId);
     } catch (err) {
-      console.error('Erro ao exportar original:', err);
+      console.error('Erro ao exportar original PDF:', err);
     } finally {
       setExportingId(null);
     }
+  };
+
+  const handleDownloadOriginalDOCX = async () => {
+    setExportingId('original-docx');
+    try {
+      await exportOriginalDOCX(questions, exam, templateFile, templateText);
+    } catch (err) {
+      console.error('Erro ao exportar original DOCX:', err);
+    } finally {
+      setExportingId(null);
+    }
+  };
+
+  const handleDownloadOriginalSheet = () => {
+    exportAnswerSheetToPdf(exam, questions);
   };
 
   const handleDownloadAll = async () => {
@@ -70,16 +140,46 @@ const DrawerTabVersions: React.FC<DrawerTabVersionsProps> = ({
     }
   };
 
-  const handleDownloadVersion = (version: ExamVersion) => {
-    setExportingId(version.id);
+  const handleDownloadVersionPDF = (version: ExamVersion) => {
+    setExportingId(version.id + '-pdf');
     try {
       exportVersionToPdf(exam, version, questions);
     } catch (err) {
-      console.error('Erro ao exportar versao:', err);
+      console.error('Erro ao exportar versao PDF:', err);
     } finally {
-      // small delay so user sees the "Gerando..." feedback
       setTimeout(() => setExportingId(null), 800);
     }
+  };
+
+  const handleDownloadVersionDOCX = async (version: ExamVersion) => {
+    setExportingId(version.id + '-docx');
+    try {
+      await exportVersionDOCX(version, questions, exam, templateFile, templateText);
+    } catch (err) {
+      console.error('Erro ao exportar versao DOCX:', err);
+    } finally {
+      setExportingId(null);
+    }
+  };
+
+  const handleDownloadVersionSheet = (version: ExamVersion) => {
+    const vQuestions = (() => {
+      const order = version.question_order as number[];
+      return order.map((originalIndex, newIndex) => {
+        const q = questions[originalIndex];
+        if (!q) return null;
+        if (q.question_type === 'multiple_choice' && version.alternatives_order[String(newIndex + 1)]) {
+          const altOrder = version.alternatives_order[String(newIndex + 1)] as string[];
+          const reorderedAlts = altOrder
+            .map((letter) => q.alternatives?.find((a) => a.letter === letter))
+            .filter(Boolean)
+            .map((a, i) => ({ letter: ['A', 'B', 'C', 'D', 'E'][i], text: a!.text }));
+          return { ...q, question_number: newIndex + 1, alternatives: reorderedAlts };
+        }
+        return { ...q, question_number: newIndex + 1 };
+      }).filter(Boolean);
+    })() as ExamQuestion[];
+    exportAnswerSheetToPdf(exam, vQuestions, version);
   };
 
   if (loading) {
@@ -91,7 +191,48 @@ const DrawerTabVersions: React.FC<DrawerTabVersionsProps> = ({
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
+      {/* ── Modelo de Prova ─────────────────────────────────── */}
+      <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg">
+        <p className="text-xs font-semibold text-purple-700 mb-1">Modelo de Prova (opcional)</p>
+        <p className="text-xs text-purple-500 mb-2">
+          Anexe um modelo para aplicar ao DOCX. Use{' '}
+          <code className="bg-purple-100 px-1 rounded">{'{{QUESTOES}}'}</code> como marcador.
+        </p>
+        <input
+          ref={templateInputRef}
+          type="file"
+          accept=".docx,.doc,.pdf,.txt"
+          className="hidden"
+          onChange={handleTemplateChange}
+        />
+        {templateFile ? (
+          <div className="flex items-center justify-between bg-white border border-purple-200 rounded px-2 py-1.5 text-xs text-purple-700">
+            <div className="flex items-center gap-1.5 truncate">
+              <FileText className="w-3.5 h-3.5 flex-shrink-0" />
+              <span className="truncate max-w-[180px]">{templateFile.name}</span>
+            </div>
+            <button
+              onClick={() => { setTemplateFile(null); setTemplateText(null); }}
+              className="ml-2 text-purple-400 hover:text-red-500 font-bold flex-shrink-0"
+            >
+              ✕
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => templateInputRef.current?.click()}
+            disabled={extractingTemplate}
+            className="w-full px-2 py-1.5 border border-dashed border-purple-300 rounded text-xs text-purple-600 hover:bg-purple-100 flex items-center justify-center gap-1 disabled:opacity-60"
+          >
+            <Upload className="w-3 h-3" />
+            {extractingTemplate ? 'Extraindo texto...' : 'Selecionar modelo (DOCX, DOC, PDF, TXT)'}
+          </button>
+        )}
+      </div>
+
+      {/* ── Cabeçalho ─────────────────────────────────────── */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-gray-500">
           {versions.length} {versions.length === 1 ? 'versao' : 'versoes'} disponivel(eis)
@@ -103,30 +244,49 @@ const DrawerTabVersions: React.FC<DrawerTabVersionsProps> = ({
             className="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 disabled:opacity-50 transition-colors"
           >
             <Layers className="w-3.5 h-3.5" />
-            <span>{exportingId === 'all' ? 'Gerando...' : 'Baixar Todas as Provas'}</span>
+            <span>{exportingId === 'all' ? 'Gerando...' : 'Baixar Todas (PDF)'}</span>
           </button>
         )}
       </div>
 
       {/* ── Prova Original ──────────────────────────────────── */}
-      <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50">
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-            <span className="text-sm font-bold text-blue-600">ORI</span>
-          </div>
-          <div>
-            <h4 className="text-sm font-medium text-gray-900">Prova Original</h4>
-            <p className="text-xs text-gray-500">Questões na ordem gerada pela IA</p>
+      <div className="border border-gray-200 rounded-lg p-3 hover:bg-gray-50">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center space-x-3">
+            <div className="w-9 h-9 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+              <span className="text-xs font-bold text-blue-600">ORI</span>
+            </div>
+            <div>
+              <h4 className="text-sm font-medium text-gray-900">Prova Original</h4>
+              <p className="text-xs text-gray-500">Questões na ordem gerada pela IA</p>
+            </div>
           </div>
         </div>
-        <button
-          onClick={handleDownloadOriginal}
-          disabled={exportingId === 'original'}
-          className="flex items-center space-x-1 px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <FileDown className="w-3.5 h-3.5" />
-          <span>{exportingId === 'original' ? 'Gerando...' : 'PDF'}</span>
-        </button>
+        <div className="flex flex-wrap gap-1.5 ml-12">
+          <button
+            onClick={handleDownloadOriginalPDF}
+            disabled={exportingId === 'original-pdf'}
+            className="flex items-center space-x-1 px-2.5 py-1.5 text-xs font-medium text-red-700 bg-red-50 rounded-lg hover:bg-red-100 disabled:opacity-50"
+          >
+            <FileDown className="w-3.5 h-3.5" />
+            <span>{exportingId === 'original-pdf' ? 'Gerando...' : 'PDF'}</span>
+          </button>
+          <button
+            onClick={handleDownloadOriginalDOCX}
+            disabled={exportingId === 'original-docx'}
+            className="flex items-center space-x-1 px-2.5 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 disabled:opacity-50"
+          >
+            <FileDown className="w-3.5 h-3.5" />
+            <span>{exportingId === 'original-docx' ? 'Gerando...' : templateFile ? 'DOCX (modelo)' : 'DOCX'}</span>
+          </button>
+          <button
+            onClick={handleDownloadOriginalSheet}
+            className="flex items-center space-x-1 px-2.5 py-1.5 text-xs font-medium text-green-700 bg-green-50 rounded-lg hover:bg-green-100"
+          >
+            <FileDown className="w-3.5 h-3.5" />
+            <span>Folha de Respostas</span>
+          </button>
+        </div>
       </div>
 
       {/* ── Versões embaralhadas ─────────────────────────────── */}
@@ -142,32 +302,44 @@ const DrawerTabVersions: React.FC<DrawerTabVersionsProps> = ({
         versions.map((version) => (
           <div
             key={version.id}
-            className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50"
+            className="border border-gray-200 rounded-lg p-3 hover:bg-gray-50"
           >
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                <span className="text-lg font-bold text-purple-600">
-                  {version.version_label}
-                </span>
+            <div className="flex items-center space-x-3 mb-2">
+              <div className="w-9 h-9 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                <span className="text-sm font-bold text-purple-600">{version.version_label}</span>
               </div>
               <div>
-                <h4 className="text-sm font-medium text-gray-900">
-                  Versão {version.version_label}
-                </h4>
+                <h4 className="text-sm font-medium text-gray-900">Versão {version.version_label}</h4>
                 <p className="text-xs text-gray-500">
                   {new Date(version.created_at).toLocaleDateString('pt-BR')}
                 </p>
               </div>
             </div>
-
-            <button
-              onClick={() => handleDownloadVersion(version)}
-              disabled={exportingId === version.id}
-              className="flex items-center space-x-1 px-3 py-1.5 text-xs font-medium text-purple-700 bg-purple-50 rounded-lg hover:bg-purple-100 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <FileDown className="w-3.5 h-3.5" />
-              <span>{exportingId === version.id ? 'Gerando...' : 'PDF'}</span>
-            </button>
+            <div className="flex flex-wrap gap-1.5 ml-12">
+              <button
+                onClick={() => handleDownloadVersionPDF(version)}
+                disabled={exportingId === version.id + '-pdf'}
+                className="flex items-center space-x-1 px-2.5 py-1.5 text-xs font-medium text-red-700 bg-red-50 rounded-lg hover:bg-red-100 disabled:opacity-50"
+              >
+                <FileDown className="w-3.5 h-3.5" />
+                <span>{exportingId === version.id + '-pdf' ? 'Gerando...' : 'PDF'}</span>
+              </button>
+              <button
+                onClick={() => handleDownloadVersionDOCX(version)}
+                disabled={exportingId === version.id + '-docx'}
+                className="flex items-center space-x-1 px-2.5 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 disabled:opacity-50"
+              >
+                <FileDown className="w-3.5 h-3.5" />
+                <span>{exportingId === version.id + '-docx' ? 'Gerando...' : templateFile ? 'DOCX (modelo)' : 'DOCX'}</span>
+              </button>
+              <button
+                onClick={() => handleDownloadVersionSheet(version)}
+                className="flex items-center space-x-1 px-2.5 py-1.5 text-xs font-medium text-green-700 bg-green-50 rounded-lg hover:bg-green-100"
+              >
+                <FileDown className="w-3.5 h-3.5" />
+                <span>Folha de Respostas</span>
+              </button>
+            </div>
           </div>
         ))
       )}
