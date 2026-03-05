@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { FileDown, Layers, Upload, FileText } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
-import { extractPdfTextPreserveLines } from '../../../lib/pdfExtract';
 import {
   exportExamToPdf,
   exportVersionToPdf,
@@ -35,7 +34,6 @@ const DrawerTabVersions: React.FC<DrawerTabVersionsProps> = ({
   // Template de prova
   const [templateFile, setTemplateFile] = useState<File | null>(null);
   const [templateText, setTemplateText] = useState<string | null>(null);
-  const [extractingTemplate, setExtractingTemplate] = useState(false);
   const templateInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -60,35 +58,17 @@ const DrawerTabVersions: React.FC<DrawerTabVersionsProps> = ({
     fetchVersions();
   }, [examId]);
 
-  const handleTemplateChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleTemplateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const ext = file.name.split('.').pop()?.toLowerCase();
-    if (!['docx', 'doc', 'pdf', 'txt'].includes(ext || '')) {
-      alert('Formato não suportado. Use DOCX, DOC, PDF ou TXT.');
+    if (!['docx', 'doc'].includes(ext || '')) {
+      alert('Formato não suportado. Use DOCX ou DOC.');
       return;
     }
     if (templateInputRef.current) templateInputRef.current.value = '';
-
-    if (ext === 'txt') {
-      const text = await file.text();
-      setTemplateFile(file);
-      setTemplateText(text);
-    } else if (ext === 'pdf') {
-      setExtractingTemplate(true);
-      try {
-        const text = await extractPdfTextPreserveLines(file);
-        setTemplateFile(file);
-        setTemplateText(text);
-      } catch {
-        alert('Não foi possível extrair o texto do PDF. Tente converter para TXT ou DOCX.');
-      } finally {
-        setExtractingTemplate(false);
-      }
-    } else {
-      setTemplateFile(file);
-      setTemplateText(null);
-    }
+    setTemplateFile(file);
+    setTemplateText(null);
   };
 
   const handleDownloadOriginalPDF = async () => {
@@ -190,7 +170,7 @@ const DrawerTabVersions: React.FC<DrawerTabVersionsProps> = ({
         <input
           ref={templateInputRef}
           type="file"
-          accept=".docx,.doc,.pdf,.txt"
+          accept=".docx,.doc"
           className="hidden"
           onChange={handleTemplateChange}
         />
@@ -211,11 +191,10 @@ const DrawerTabVersions: React.FC<DrawerTabVersionsProps> = ({
           <button
             type="button"
             onClick={() => templateInputRef.current?.click()}
-            disabled={extractingTemplate}
-            className="w-full px-2 py-1.5 border border-dashed border-purple-300 rounded text-xs text-purple-600 hover:bg-purple-100 flex items-center justify-center gap-1 disabled:opacity-60"
+            className="w-full px-2 py-1.5 border border-dashed border-purple-300 rounded text-xs text-purple-600 hover:bg-purple-100 flex items-center justify-center gap-1"
           >
             <Upload className="w-3 h-3" />
-            {extractingTemplate ? 'Extraindo texto...' : 'Selecionar modelo (DOCX, DOC, PDF, TXT)'}
+            Selecionar modelo Word (DOCX ou DOC)
           </button>
         )}
       </div>

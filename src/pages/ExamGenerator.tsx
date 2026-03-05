@@ -316,8 +316,6 @@ const CreateExamForm: React.FC<{
   const [extracting, setExtracting] = useState(false);
 
   const [templateFile, setTemplateFile] = useState<File | null>(null);
-  const [templateText, setTemplateText] = useState<string | null>(null);
-  const [extractingTemplate, setExtractingTemplate] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const templateInputRef = useRef<HTMLInputElement>(null);
@@ -396,37 +394,17 @@ const CreateExamForm: React.FC<{
     }
   };
 
-  const handleTemplateUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleTemplateUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const ext = file.name.split(".").pop()?.toLowerCase();
-    if (!["docx", "doc", "pdf", "txt"].includes(ext || "")) {
-      alert("Formato não suportado. Use DOCX, DOC, PDF ou TXT.");
+    if (!["docx", "doc"].includes(ext || "")) {
+      alert("Formato não suportado. Use DOCX ou DOC.");
       if (templateInputRef.current) templateInputRef.current.value = "";
       return;
     }
     if (templateInputRef.current) templateInputRef.current.value = "";
-
-    if (ext === "txt") {
-      const text = await file.text();
-      setTemplateFile(file);
-      setTemplateText(text);
-    } else if (ext === "pdf") {
-      setExtractingTemplate(true);
-      try {
-        const text = await extractPdfTextPreserveLines(file);
-        setTemplateFile(file);
-        setTemplateText(text);
-      } catch {
-        alert("Não foi possível extrair o texto do PDF. Tente converter para TXT ou DOCX.");
-      } finally {
-        setExtractingTemplate(false);
-      }
-    } else {
-      // docx ou doc — comportamento existente
-      setTemplateFile(file);
-      setTemplateText(null);
-    }
+    setTemplateFile(file);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -434,7 +412,7 @@ const CreateExamForm: React.FC<{
     setSubmitting(true);
     setSubmitError(null);
     try {
-      await onSubmit(form, templateFile || undefined, templateText);
+      await onSubmit(form, templateFile || undefined, null);
       clearDraft();
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : "Erro desconhecido");
@@ -650,13 +628,13 @@ const CreateExamForm: React.FC<{
               <div>
                 <p className="text-sm font-semibold text-purple-800">Modelo de Prova (opcional)</p>
                 <p className="text-xs text-purple-600 mt-0.5">
-                  Suba um arquivo com seu layout (DOCX, DOC, PDF ou TXT). As questões serão inseridas onde estiver o marcador{" "}
+                  Suba um arquivo Word com seu layout (DOCX ou DOC). As questões serão inseridas onde estiver o marcador{" "}
                   <code className="bg-purple-100 px-1 rounded font-mono">{"{{QUESTOES}}"}</code>
                 </p>
               </div>
             </div>
 
-            <input ref={templateInputRef} type="file" accept=".docx,.doc,.pdf,.txt" onChange={handleTemplateUpload} className="hidden" />
+            <input ref={templateInputRef} type="file" accept=".docx,.doc" onChange={handleTemplateUpload} className="hidden" />
 
             {templateFile ? (
               <div className="flex items-center justify-between bg-white border border-purple-200 rounded-lg px-3 py-2 text-sm">
@@ -670,10 +648,10 @@ const CreateExamForm: React.FC<{
                 </button>
               </div>
             ) : (
-              <button type="button" onClick={() => templateInputRef.current?.click()} disabled={extractingTemplate}
-                className="w-full px-3 py-2.5 border-2 border-dashed border-purple-300 rounded-lg hover:border-purple-500 hover:bg-purple-100 transition-colors flex items-center justify-center space-x-2 text-sm text-purple-600 disabled:opacity-60">
+              <button type="button" onClick={() => templateInputRef.current?.click()}
+                className="w-full px-3 py-2.5 border-2 border-dashed border-purple-300 rounded-lg hover:border-purple-500 hover:bg-purple-100 transition-colors flex items-center justify-center space-x-2 text-sm text-purple-600">
                 <Upload className="w-4 h-4" />
-                <span>{extractingTemplate ? "Extraindo texto..." : "Selecionar modelo (DOCX, DOC, PDF, TXT)"}</span>
+                <span>Selecionar modelo Word (DOCX ou DOC)</span>
               </button>
             )}
 
@@ -883,35 +861,19 @@ const ExamReview: React.FC<{
           <div className="mb-3 p-3 bg-purple-50 border border-purple-200 rounded-lg">
             <p className="text-xs font-semibold text-purple-700 mb-1">Modelo de Prova (opcional)</p>
             <p className="text-xs text-purple-500 mb-2">
-              Anexe um DOCX com seu layout. Coloque <code className="bg-purple-100 px-1 rounded">{"{{QUESTOES}}"}</code> onde as questões devem aparecer.
+              Anexe um Word (DOCX ou DOC) com seu layout. Coloque <code className="bg-purple-100 px-1 rounded">{"{{QUESTOES}}"}</code> onde as questões devem aparecer.
             </p>
-            <input ref={templateInputRef} type="file" accept=".docx,.doc,.pdf,.txt" className="hidden"
-              onChange={async (e) => {
+            <input ref={templateInputRef} type="file" accept=".docx,.doc" className="hidden"
+              onChange={(e) => {
                 const file = e.target.files?.[0];
                 if (!file) return;
                 const ext = file.name.split(".").pop()?.toLowerCase();
-                if (!["docx", "doc", "pdf", "txt"].includes(ext || "")) {
-                  alert("Formato não suportado. Use DOCX, DOC, PDF ou TXT.");
+                if (!["docx", "doc"].includes(ext || "")) {
+                  alert("Formato não suportado. Use DOCX ou DOC.");
                   return;
                 }
                 if (templateInputRef.current) templateInputRef.current.value = "";
-                if (ext === "txt") {
-                  const text = await file.text();
-                  onTemplateChange(file, text);
-                } else if (ext === "pdf") {
-                  setExtractingTemplate(true);
-                  try {
-                    const text = await extractPdfTextPreserveLines(file);
-                    onTemplateChange(file, text);
-                  } catch {
-                    alert("Não foi possível extrair o texto do PDF. Tente converter para TXT ou DOCX.");
-                  } finally {
-                    setExtractingTemplate(false);
-                  }
-                } else {
-                  // docx ou doc
-                  onTemplateChange(file, null);
-                }
+                onTemplateChange(file, null);
               }}
             />
             {templateFile ? (
@@ -920,9 +882,9 @@ const ExamReview: React.FC<{
                 <button onClick={() => onTemplateChange(null)} className="ml-2 text-purple-400 hover:text-red-500 font-bold">✕</button>
               </div>
             ) : (
-              <button type="button" onClick={() => templateInputRef.current?.click()} disabled={extractingTemplate}
-                className="w-full px-2 py-1.5 border border-dashed border-purple-300 rounded text-xs text-purple-600 hover:bg-purple-100 flex items-center justify-center gap-1 disabled:opacity-60">
-                <Upload className="w-3 h-3" /> {extractingTemplate ? "Extraindo texto..." : "Selecionar modelo"}
+              <button type="button" onClick={() => templateInputRef.current?.click()}
+                className="w-full px-2 py-1.5 border border-dashed border-purple-300 rounded text-xs text-purple-600 hover:bg-purple-100 flex items-center justify-center gap-1">
+                <Upload className="w-3 h-3" /> Selecionar modelo Word (DOCX ou DOC)
               </button>
             )}
           </div>
@@ -1259,32 +1221,19 @@ const VersionsModal: React.FC<{
                 <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg">
                   <p className="text-xs font-semibold text-purple-700 mb-1">Modelo de Prova (opcional)</p>
                   <p className="text-xs text-purple-500 mb-2">
-                    Anexe um modelo para aplicar ao DOCX das versões. Use <code className="bg-purple-100 px-1 rounded">{"{{QUESTOES}}"}</code> como marcador.
+                    Anexe um Word (DOCX ou DOC) para aplicar ao DOCX das versões. Use <code className="bg-purple-100 px-1 rounded">{"{{QUESTOES}}"}</code> como marcador.
                   </p>
-                  <input ref={templateInputRef} type="file" accept=".docx,.doc,.pdf,.txt" className="hidden"
-                    onChange={async (e) => {
+                  <input ref={templateInputRef} type="file" accept=".docx,.doc" className="hidden"
+                    onChange={(e) => {
                       const file = e.target.files?.[0];
                       if (!file) return;
                       const ext = file.name.split(".").pop()?.toLowerCase();
-                      if (!["docx", "doc", "pdf", "txt"].includes(ext || "")) {
-                        alert("Formato não suportado. Use DOCX, DOC, PDF ou TXT.");
+                      if (!["docx", "doc"].includes(ext || "")) {
+                        alert("Formato não suportado. Use DOCX ou DOC.");
                         return;
                       }
                       if (templateInputRef.current) templateInputRef.current.value = "";
-                      if (ext === "txt") {
-                        const text = await file.text();
-                        setTemplateFile(file); setTemplateText(text);
-                      } else if (ext === "pdf") {
-                        setExtractingTemplate(true);
-                        try {
-                          const text = await extractPdfTextPreserveLines(file);
-                          setTemplateFile(file); setTemplateText(text);
-                        } catch {
-                          alert("Não foi possível extrair o texto do PDF. Tente converter para TXT ou DOCX.");
-                        } finally { setExtractingTemplate(false); }
-                      } else {
-                        setTemplateFile(file); setTemplateText(null);
-                      }
+                      setTemplateFile(file); setTemplateText(null);
                     }}
                   />
                   {templateFile ? (
@@ -1293,9 +1242,9 @@ const VersionsModal: React.FC<{
                       <button onClick={() => { setTemplateFile(null); setTemplateText(null); }} className="ml-2 text-purple-400 hover:text-red-500 font-bold">✕</button>
                     </div>
                   ) : (
-                    <button type="button" onClick={() => templateInputRef.current?.click()} disabled={extractingTemplate}
-                      className="w-full px-2 py-1.5 border border-dashed border-purple-300 rounded text-xs text-purple-600 hover:bg-purple-100 flex items-center justify-center gap-1 disabled:opacity-60">
-                      <Upload className="w-3 h-3" /> {extractingTemplate ? "Extraindo texto..." : "Selecionar modelo"}
+                    <button type="button" onClick={() => templateInputRef.current?.click()}
+                      className="w-full px-2 py-1.5 border border-dashed border-purple-300 rounded text-xs text-purple-600 hover:bg-purple-100 flex items-center justify-center gap-1">
+                      <Upload className="w-3 h-3" /> Selecionar modelo Word (DOCX ou DOC)
                     </button>
                   )}
                 </div>
