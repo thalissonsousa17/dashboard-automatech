@@ -102,7 +102,28 @@ async function fetchGeoData(): Promise<GeoData | null> {
     }
   } catch { /* continua para fallback */ }
 
-  // Tentativa 3: ip-api.com (fallback, tem rate-limit)
+  // Tentativa 3: ipwho.is (sem chave, sem rate-limit severo)
+  try {
+    const res = await fetch('https://ipwho.is/');
+    if (res.ok) {
+      const data = await res.json();
+      if (data.success && data.ip && data.latitude != null && data.longitude != null) {
+        return {
+          ip: data.ip,
+          country: data.country,
+          countryCode: data.country_code,
+          region: data.region || '',
+          city: data.city || '',
+          lat: data.latitude,
+          lon: data.longitude,
+          timezone: data.timezone?.id || '',
+          isp: data.connection?.isp || '',
+        };
+      }
+    }
+  } catch { /* continua para fallback */ }
+
+  // Tentativa 4: ip-api.com (último recurso, tem rate-limit)
   try {
     const res = await fetch(
       'https://ip-api.com/json/?fields=status,country,countryCode,region,city,lat,lon,timezone,isp,query',
