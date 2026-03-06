@@ -1,5 +1,5 @@
 import React from 'react';
-import { FolderOpen, X } from 'lucide-react';
+import { FolderOpen, X, AlertTriangle } from 'lucide-react';
 import type { FolderNode } from '../types';
 
 interface MovePickerModalProps {
@@ -10,6 +10,7 @@ interface MovePickerModalProps {
   excludeFolderId?: string;
   itemName: string;
   moving?: boolean;
+  error?: string | null;
 }
 
 interface FlatFolder {
@@ -40,6 +41,7 @@ const MovePickerModal: React.FC<MovePickerModalProps> = ({
   excludeFolderId,
   itemName,
   moving = false,
+  error = null,
 }) => {
   if (!isOpen) return null;
 
@@ -98,11 +100,17 @@ const MovePickerModal: React.FC<MovePickerModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-3 border-t border-gray-200 flex justify-end">
+        <div className="px-5 py-3 border-t border-gray-200 flex items-center justify-between gap-3">
+          {error ? (
+            <div className="flex items-center gap-1.5 text-xs text-red-600">
+              <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
+              <span>{error}</span>
+            </div>
+          ) : <div />}
           <button
             onClick={onClose}
             disabled={moving}
-            className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+            className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50 flex-shrink-0"
           >
             Cancelar
           </button>

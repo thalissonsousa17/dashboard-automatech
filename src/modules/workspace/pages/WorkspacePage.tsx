@@ -104,6 +104,7 @@ const WorkspacePage: React.FC = () => {
     name: string;
   } | null>(null);
   const [movePending, setMovePending] = useState(false);
+  const [moveError, setMoveError] = useState<string | null>(null);
 
   // ── Limite: criar novo workspace ─────────────────────────────────────────────
   const handleNovoWorkspace = () => {
@@ -122,22 +123,25 @@ const WorkspacePage: React.FC = () => {
   const handleMoveConfirm = async (targetFolderId: string | null) => {
     if (!movingItem || !workspaceId) return;
     setMovePending(true);
+    setMoveError(null);
     try {
       if (movingItem.type === 'exam') {
         await moveExamToFolder(movingItem.id, targetFolderId, workspaceId);
-        loadExams();
+        setMovingItem(null);
+        // Navigate to destination so the user can see where the exam went
+        handleSelectFolder(targetFolderId);
         fetchFolders(workspaceId);
       } else {
         await moveFolder(movingItem.id, targetFolderId);
         fetchFolders(workspaceId);
+        setMovingItem(null);
         if (selectedFolderId === movingItem.id) {
-          setSelectedFolderId(null);
-          navigate(`/dashboard/workspaces/${workspaceId}`);
+          handleSelectFolder(null);
         }
       }
-      setMovingItem(null);
     } catch (err) {
       console.error('Erro ao mover:', err);
+      setMoveError(err instanceof Error ? err.message : 'Erro ao mover. Tente novamente.');
     } finally {
       setMovePending(false);
     }
@@ -680,12 +684,13 @@ const WorkspacePage: React.FC = () => {
 
       <MovePickerModal
         isOpen={!!movingItem}
-        onClose={() => setMovingItem(null)}
+        onClose={() => { setMovingItem(null); setMoveError(null); }}
         onMove={handleMoveConfirm}
         folders={folderTree}
         excludeFolderId={movingItem?.type === 'folder' ? movingItem.id : undefined}
         itemName={movingItem?.name ?? ''}
         moving={movePending}
+        error={moveError}
       />
     </div>
   );
