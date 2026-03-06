@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FileDown, Layers, Upload, FileText } from 'lucide-react';
+import { FileDown, Layers, Upload, FileText, Loader2 } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
+import { extractPdfTextPreserveLines } from '../../../lib/pdfExtract';
 import {
   exportExamToPdf,
   exportVersionToPdf,
@@ -34,6 +35,7 @@ const DrawerTabVersions: React.FC<DrawerTabVersionsProps> = ({
   // Template de prova
   const [templateFile, setTemplateFile] = useState<File | null>(null);
   const [templateText, setTemplateText] = useState<string | null>(null);
+  const [extractingTemplate, setExtractingTemplate] = useState(false);
   const templateInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -58,17 +60,34 @@ const DrawerTabVersions: React.FC<DrawerTabVersionsProps> = ({
     fetchVersions();
   }, [examId]);
 
-  const handleTemplateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleTemplateChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const ext = file.name.split('.').pop()?.toLowerCase();
-    if (!['docx', 'doc'].includes(ext || '')) {
-      alert('Formato não suportado. Use DOCX ou DOC.');
+    if (!['docx', 'doc', 'pdf'].includes(ext || '')) {
+      alert('Formato não suportado. Use DOCX, DOC ou PDF.');
       return;
     }
     if (templateInputRef.current) templateInputRef.current.value = '';
-    setTemplateFile(file);
-    setTemplateText(null);
+
+    if (ext === 'pdf') {
+      setExtractingTemplate(true);
+      setTemplateFile(file);
+      setTemplateText(null);
+      try {
+        const text = await extractPdfTextPreserveLines(file);
+        setTemplateText(text);
+      } catch {
+        alert('Não foi possível extrair o texto do PDF.');
+        setTemplateFile(null);
+        setTemplateText(null);
+      } finally {
+        setExtractingTemplate(false);
+      }
+    } else {
+      setTemplateFile(file);
+      setTemplateText(null);
+    }
   };
 
   const handleDownloadOriginalPDF = async () => {
@@ -170,15 +189,19 @@ const DrawerTabVersions: React.FC<DrawerTabVersionsProps> = ({
         <input
           ref={templateInputRef}
           type="file"
-          accept=".docx,.doc"
+          accept=".docx,.doc,.pdf"
           className="hidden"
           onChange={handleTemplateChange}
         />
         {templateFile ? (
           <div className="flex items-center justify-between bg-white border border-purple-200 rounded px-2 py-1.5 text-xs text-purple-700">
             <div className="flex items-center gap-1.5 truncate">
-              <FileText className="w-3.5 h-3.5 flex-shrink-0" />
-              <span className="truncate max-w-[180px]">{templateFile.name}</span>
+              {extractingTemplate
+                ? <Loader2 className="w-3.5 h-3.5 flex-shrink-0 animate-spin" />
+                : <FileText className="w-3.5 h-3.5 flex-shrink-0" />}
+              <span className="truncate max-w-[180px]">
+                {extractingTemplate ? 'Lendo PDF...' : templateFile.name}
+              </span>
             </div>
             <button
               onClick={() => { setTemplateFile(null); setTemplateText(null); }}
@@ -194,7 +217,7 @@ const DrawerTabVersions: React.FC<DrawerTabVersionsProps> = ({
             className="w-full px-2 py-1.5 border border-dashed border-purple-300 rounded text-xs text-purple-600 hover:bg-purple-100 flex items-center justify-center gap-1"
           >
             <Upload className="w-3 h-3" />
-            Selecionar modelo Word (DOCX ou DOC)
+            Selecionar modelo (DOCX, DOC ou PDF)
           </button>
         )}
       </div>
@@ -240,7 +263,7 @@ const DrawerTabVersions: React.FC<DrawerTabVersionsProps> = ({
           </button>
           <button
             onClick={handleDownloadOriginalDOCX}
-            disabled={exportingId === 'original-docx'}
+            disabled={exportingId === 'original-docx' || extractingTemplate}
             className="flex items-center space-x-1 px-2.5 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 disabled:opacity-50"
           >
             <FileDown className="w-3.5 h-3.5" />
@@ -293,7 +316,7 @@ const DrawerTabVersions: React.FC<DrawerTabVersionsProps> = ({
               </button>
               <button
                 onClick={() => handleDownloadVersionDOCX(version)}
-                disabled={exportingId === version.id + '-docx'}
+                disabled={exportingId === version.id + '-docx' || extractingTemplate}
                 className="flex items-center space-x-1 px-2.5 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 disabled:opacity-50"
               >
                 <FileDown className="w-3.5 h-3.5" />
