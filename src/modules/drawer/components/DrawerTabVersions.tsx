@@ -87,12 +87,6 @@ const DrawerTabVersions: React.FC<DrawerTabVersionsProps> = ({
       }
     } else if (ext === 'doc') {
       // .doc binário OLE: extrai texto via Edge Function (formatação não é preservada)
-      const ok = window.confirm(
-        'Arquivos .doc antigos perdem a formatação (tabelas, imagens, estilos).\n\n' +
-        'Para preservar 100% da formatação, abra o arquivo no Word e salve como .docx.\n\n' +
-        'Deseja continuar mesmo assim?'
-      );
-      if (!ok) return;
       setExtractingTemplate(true);
       setTemplateFile(file);
       setTemplateText(null);
@@ -217,9 +211,12 @@ const DrawerTabVersions: React.FC<DrawerTabVersionsProps> = ({
       {/* ── Modelo de Prova ─────────────────────────────────── */}
       <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg">
         <p className="text-xs font-semibold text-purple-700 mb-1">Modelo de Prova (opcional)</p>
-        <p className="text-xs text-purple-500 mb-2">
+        <p className="text-xs text-purple-500 mb-1">
           Anexe um modelo para aplicar ao DOCX. Use{' '}
           <code className="bg-purple-100 px-1 rounded">{'{{QUESTOES}}'}</code> como marcador.
+        </p>
+        <p className="text-xs text-amber-600 mb-2">
+          ⚠️ Para preservar tabelas e estilos, salve seu arquivo como <strong>.docx</strong> antes de anexar. PDF e DOC antigo perdem formatação.
         </p>
         <input
           ref={templateInputRef}
