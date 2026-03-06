@@ -86,7 +86,13 @@ const DrawerTabVersions: React.FC<DrawerTabVersionsProps> = ({
         setExtractingTemplate(false);
       }
     } else if (ext === 'doc') {
-      // .doc binário OLE → Edge Function (mammoth Node.js) → buildDocxFromText
+      // .doc binário OLE: extrai texto via Edge Function (formatação não é preservada)
+      const ok = window.confirm(
+        'Arquivos .doc antigos perdem a formatação (tabelas, imagens, estilos).\n\n' +
+        'Para preservar 100% da formatação, abra o arquivo no Word e salve como .docx.\n\n' +
+        'Deseja continuar mesmo assim?'
+      );
+      if (!ok) return;
       setExtractingTemplate(true);
       setTemplateFile(file);
       setTemplateText(null);
