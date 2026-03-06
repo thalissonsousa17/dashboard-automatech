@@ -131,7 +131,7 @@ export async function buildDocxFromText(
 
 /** Injeta questões em um DOCX/DOC existente via ZIP.
  *  Tenta abrir como ZIP primeiro (.docx e .doc modernos funcionam).
- *  Se falhar (binário OLE antigo), usa mammoth para extrair texto. */
+ *  Se falhar OU não tiver word/document.xml (binário OLE antigo), usa mammoth. */
 export async function injectQuestionsIntoDocx(
   templateFile: File,
   questions: ExamQuestion[],
@@ -139,10 +139,16 @@ export async function injectQuestionsIntoDocx(
   const arrayBuffer = await templateFile.arrayBuffer();
   const zip = new JSZip();
 
+  let docXmlFile: ReturnType<typeof zip.file> = null;
   try {
     await zip.loadAsync(arrayBuffer);
+    docXmlFile = zip.file('word/document.xml');
   } catch {
-    // Não é ZIP — arquivo .doc binário antigo (OLE). Usa mammoth.
+    // Não é ZIP válido — cai no fallback mammoth abaixo
+  }
+
+  if (!docXmlFile) {
+    // Binário OLE antigo (.doc) ou ZIP sem word/document.xml → usa mammoth
     const mammoth = await import('mammoth');
     const result = await mammoth.extractRawText({ arrayBuffer });
     return buildDocxFromText(
@@ -151,9 +157,6 @@ export async function injectQuestionsIntoDocx(
       templateFile.name.replace(/\.[^.]+$/i, ''),
     );
   }
-
-  const docXmlFile = zip.file('word/document.xml');
-  if (!docXmlFile) throw new Error('DOCX inválido: word/document.xml não encontrado.');
 
   let docXml = await docXmlFile.async('string');
   const questionsXml = buildQuestionsXML(questions);
