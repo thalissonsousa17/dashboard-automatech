@@ -71,6 +71,7 @@ const DrawerTabVersions: React.FC<DrawerTabVersionsProps> = ({
     if (templateInputRef.current) templateInputRef.current.value = '';
 
     if (ext === 'pdf') {
+      // PDF → extrai texto com pdfjs → buildDocxFromText
       setExtractingTemplate(true);
       setTemplateFile(file);
       setTemplateText(null);
@@ -84,7 +85,25 @@ const DrawerTabVersions: React.FC<DrawerTabVersionsProps> = ({
       } finally {
         setExtractingTemplate(false);
       }
+    } else if (ext === 'doc') {
+      // .doc → extrai texto com mammoth na hora do upload → buildDocxFromText
+      setExtractingTemplate(true);
+      setTemplateFile(file);
+      setTemplateText(null);
+      try {
+        const mammoth = await import('mammoth');
+        const arrayBuffer = await file.arrayBuffer();
+        const result = await mammoth.extractRawText({ arrayBuffer });
+        setTemplateText(result.value || '');
+      } catch {
+        alert('Não foi possível extrair o texto do arquivo .doc.');
+        setTemplateFile(null);
+        setTemplateText(null);
+      } finally {
+        setExtractingTemplate(false);
+      }
     } else {
+      // .docx → injeta direto no ZIP na hora do download
       setTemplateFile(file);
       setTemplateText(null);
     }
