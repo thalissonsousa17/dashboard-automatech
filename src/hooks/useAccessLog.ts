@@ -82,19 +82,22 @@ async function fetchGeoData(): Promise<GeoData | null> {
     const res = await fetch('https://ipinfo.io/json');
     if (res.ok) {
       const data = await res.json();
-      if (data.ip) {
-        const [lat, lon] = (data.loc || '0,0').split(',').map(Number);
-        return {
-          ip: data.ip,
-          country: data.country,
-          countryCode: data.country,
-          region: data.region || '',
-          city: data.city || '',
-          lat,
-          lon,
-          timezone: data.timezone || '',
-          isp: data.org || '',
-        };
+      if (data.ip && data.loc) {
+        const [lat, lon] = data.loc.split(',').map(Number);
+        // loc válido: coordenadas diferentes de 0,0 (null island)
+        if (lat !== 0 || lon !== 0) {
+          return {
+            ip: data.ip,
+            country: data.city ? `${data.city}, ${data.country}` : data.country,
+            countryCode: data.country,
+            region: data.region || '',
+            city: data.city || '',
+            lat,
+            lon,
+            timezone: data.timezone || '',
+            isp: data.org || '',
+          };
+        }
       }
     }
   } catch { /* continua para fallback */ }
@@ -158,8 +161,9 @@ export function useAccessLog() {
           country_code: geoData?.countryCode || null,
           region: geoData?.region || null,
           city: geoData?.city || null,
-          latitude: geoData?.lat || null,
-          longitude: geoData?.lon || null,
+          // Usa != null para não tratar 0 como falsy (coordenadas negativas são válidas)
+          latitude: geoData != null && geoData.lat != null ? geoData.lat : null,
+          longitude: geoData != null && geoData.lon != null ? geoData.lon : null,
           timezone: geoData?.timezone || null,
           isp: geoData?.isp || null,
           user_agent: deviceInfo.userAgent,
