@@ -3,11 +3,72 @@ import { saveAs } from 'file-saver';
 import JSZip from 'jszip';
 import type { Exam, ExamQuestion, ExamVersion } from '../../../types';
 
-const MARKER = '{{QUESTOES}}';
+const MARKER_REGEX = /\{\{[Qq][Uu][Ee][Ss][Tt][OoÕõ][Ee][Ss]\}\}/;
+const PARAGRAPH_WITH_MARKER =
+  /<w:p\b[^>]*>(?:(?!<w:p\b).)*?\{\{[Qq][Uu][Ee][Ss][Tt][OoÕõ][Ee][Ss]\}\}(?:(?!<w:p\b).)*?<\/w:p>/s;
 
 // ---------------------------------------------------------------------------
 // BUILD HELPERS
 // ---------------------------------------------------------------------------
+
+function escapeXml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
+function buildQuestionsXML(questions: ExamQuestion[]): string {
+  let xml = '';
+  for (const q of questions) {
+    xml += `<w:p>
+      <w:pPr><w:spacing w:before="200"/></w:pPr>
+      <w:r><w:rPr><w:b/><w:sz w:val="24"/></w:rPr><w:t xml:space="preserve">${escapeXml(String(q.question_number))}. </w:t></w:r>
+      <w:r><w:rPr><w:sz w:val="24"/></w:rPr><w:t>${escapeXml(q.statement)}</w:t></w:r>
+    </w:p>`;
+
+    if (q.question_type === 'multiple_choice') {
+      for (const alt of q.alternatives) {
+        xml += `<w:p>
+          <w:pPr><w:ind w:left="360"/><w:spacing w:before="60"/></w:pPr>
+          <w:r><w:rPr><w:sz w:val="22"/></w:rPr><w:t xml:space="preserve">    (${escapeXml(alt.letter)}) ${escapeXml(alt.text)}</w:t></w:r>
+        </w:p>`;
+      }
+    } else {
+      for (let i = 0; i < 4; i++) {
+        xml += `<w:p>
+          <w:pPr><w:spacing w:before="100"/></w:pPr>
+          <w:r><w:rPr><w:sz w:val="22"/><w:color w:val="CCCCCC"/></w:rPr><w:t>___________________________________________</w:t></w:r>
+        </w:p>`;
+      }
+    }
+  }
+  return xml;
+}
+
+function replaceParagraphByTextContent(
+  docXml: string,
+  markerRegex: RegExp,
+  replacement: string,
+): string | null {
+  const pRegex = /(<w:p\b[^>]*>[\s\S]*?<\/w:p>)/g;
+  let found = false;
+
+  const result = docXml.replace(pRegex, (paragraph) => {
+    if (found) return paragraph;
+    const textNodes = [...paragraph.matchAll(/<w:t[^>]*>([\s\S]*?)<\/w:t>/g)];
+    const paragraphText = textNodes.map((m) => m[1]).join('');
+    if (markerRegex.test(paragraphText)) {
+      found = true;
+      return replacement;
+    }
+    return paragraph;
+  });
+
+  return found ? result : null;
+}
 
 function buildQuestionsParas(questions: ExamQuestion[]): Paragraph[] {
   const paras: Paragraph[] = [];
@@ -42,13 +103,13 @@ function buildQuestionsParas(questions: ExamQuestion[]): Paragraph[] {
   return paras;
 }
 
-/** Gera DOCX a partir de texto plano (PDF/TXT extraído) como template. */
+/** Gera DOCX a partir de texto plano como template. */
 export async function buildDocxFromText(
   templateText: string,
   questions: ExamQuestion[],
   title: string,
 ): Promise<Blob> {
-  const parts = templateText.split(MARKER);
+  const parts = templateText.split(MARKER_REGEX);
   const textBefore = parts[0] || '';
   const textAfter = parts.length > 1 ? parts[1] : '';
 
@@ -68,8 +129,8 @@ export async function buildDocxFromText(
   return Packer.toBlob(doc);
 }
 
-/** Injeta questões em um DOCX/DOC existente via ZIP. Procura {{QUESTOES}} no XML.
- *  Tenta abrir como ZIP primeiro (.docx e .doc modernos do Word funcionam).
+/** Injeta questões em um DOCX/DOC existente via ZIP.
+ *  Tenta abrir como ZIP primeiro (.docx e .doc modernos funcionam).
  *  Se falhar (binário OLE antigo), usa mammoth para extrair texto. */
 export async function injectQuestionsIntoDocx(
   templateFile: File,
@@ -81,60 +142,44 @@ export async function injectQuestionsIntoDocx(
   try {
     await zip.loadAsync(arrayBuffer);
   } catch {
-    // Não é ZIP — arquivo .doc binário antigo (OLE). Usa mammoth para extrair texto.
+    // Não é ZIP — arquivo .doc binário antigo (OLE). Usa mammoth.
     const mammoth = await import('mammoth');
     const result = await mammoth.extractRawText({ arrayBuffer });
-    return buildDocxFromText(result.value || '', questions, templateFile.name.replace(/\.[^.]+$/i, ''));
+    return buildDocxFromText(
+      result.value || '',
+      questions,
+      templateFile.name.replace(/\.[^.]+$/i, ''),
+    );
   }
 
   const docXmlFile = zip.file('word/document.xml');
   if (!docXmlFile) throw new Error('DOCX inválido: word/document.xml não encontrado.');
 
-  let xml = await docXmlFile.async('string');
-  const hasMarker = xml.includes(MARKER);
+  let docXml = await docXmlFile.async('string');
+  const questionsXml = buildQuestionsXML(questions);
 
-  const questionLines: string[] = [];
-  for (const q of questions) {
-    questionLines.push(`${q.question_number}. ${q.statement}`);
-    if (q.question_type === 'multiple_choice') {
-      for (const alt of q.alternatives)
-        questionLines.push(`    (${alt.letter}) ${alt.text}`);
-    }
-    questionLines.push('');
-  }
-
-  const questionsXml = questionLines
-    .map(
-      (line) =>
-        `<w:p><w:r><w:t xml:space="preserve">${line
-          .replace(/&/g, '&amp;')
-          .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;')}</w:t></w:r></w:p>`,
-    )
-    .join('');
-
-  if (hasMarker) {
-    const markerRegex = new RegExp(
-      `<w:p[^>]*>(?:(?!<w:p[\\s>]).)*?${MARKER.replace(/{/g, '\\{').replace(/}/g, '\\}')}.*?</w:p>`,
-      's',
-    );
-    xml = xml.replace(markerRegex, questionsXml);
-    if (!xml.includes(questionsXml.slice(0, 30))) {
-      // fallback simples se regex falhou
-      xml = xml.replace(MARKER, questionsXml);
-    }
+  if (PARAGRAPH_WITH_MARKER.test(docXml)) {
+    docXml = docXml.replace(PARAGRAPH_WITH_MARKER, questionsXml);
+  } else if (MARKER_REGEX.test(docXml)) {
+    docXml = docXml.replace(MARKER_REGEX, questionsXml);
   } else {
-    // Sem marcador: insere antes de </w:body>
-    const insertPoint = xml.lastIndexOf('</w:body>');
-    if (insertPoint !== -1) {
-      xml = xml.slice(0, insertPoint) + questionsXml + xml.slice(insertPoint);
+    const resultWithMarker = replaceParagraphByTextContent(docXml, MARKER_REGEX, questionsXml);
+    if (resultWithMarker) {
+      docXml = resultWithMarker;
     } else {
-      xml += questionsXml;
+      // Sem marcador: insere antes de <w:sectPr ou </w:body>
+      const sectPrIdx = docXml.lastIndexOf('<w:sectPr');
+      const bodyEndIdx = docXml.lastIndexOf('</w:body>');
+      const insertAt =
+        sectPrIdx > -1 && sectPrIdx < bodyEndIdx ? sectPrIdx : bodyEndIdx;
+
+      const separator = `<w:p><w:r><w:rPr><w:color w:val="AAAAAA"/><w:sz w:val="20"/></w:rPr><w:t>${'─'.repeat(50)}</w:t></w:r></w:p>`;
+      docXml = docXml.slice(0, insertAt) + separator + questionsXml + docXml.slice(insertAt);
     }
   }
 
-  zip.file('word/document.xml', xml);
-  return zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+  zip.file('word/document.xml', docXml);
+  return zip.generateAsync({ type: 'blob' });
 }
 
 /** Gera DOCX padrão (sem template) para uma lista de questões. */
