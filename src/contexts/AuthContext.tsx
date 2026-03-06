@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState, useRef } from "r
 import { useNavigate } from "react-router-dom";
 import { User } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase";
+import { useAccessLog } from "../hooks/useAccessLog";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = supabase as any;
@@ -51,6 +52,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+
+  const { registerAccess, registerLogout } = useAccessLog();
 
   // Controle de sessão de uso
   const sessionIdRef = useRef<string | null>(null);
@@ -144,6 +147,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         if (currentUser) {
           loadProfile(currentUser.id);
           openSession(currentUser.id);
+          registerAccess(
+            currentUser.id,
+            currentUser.email ?? undefined,
+            currentUser.user_metadata?.display_name ?? undefined,
+          );
         }
         setLoading(false);
       })
@@ -163,10 +171,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         // Só abre nova sessão se não há uma já aberta (evita duplicata com getSession acima)
         if (!sessionIdRef.current) {
           openSession(currentUser.id);
+          registerAccess(
+            currentUser.id,
+            currentUser.email ?? undefined,
+            currentUser.user_metadata?.display_name ?? undefined,
+          );
         }
       } else if (event === "SIGNED_OUT") {
         setProfile(null);
         closeSession();
+        registerLogout();
       } else if (currentUser) {
         loadProfile(currentUser.id);
       } else {

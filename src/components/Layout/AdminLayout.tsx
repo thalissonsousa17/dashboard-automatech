@@ -11,18 +11,21 @@ import {
   X,
   ChevronLeft,
   HelpCircle,
+  Globe,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import AdminDashboard from "../../pages/AdminDashboard";
 import AdminUserLogs from "../../pages/AdminUserLogs";
 import AdminSuporteTickets from "../../pages/AdminSuporteTickets";
 import AdminAjuda from "../../pages/AdminAjuda";
+import AccessMapDashboard from "../../pages/AccessMapDashboard";
 
 const NAV_ITEMS = [
-  { to: "/dashboard/admin",         label: "Dashboard",          Icon: LayoutDashboard, end: true },
-  { to: "/dashboard/admin/logs",    label: "Usuários",           Icon: Activity },
-  { to: "/dashboard/admin/tickets", label: "Suporte",            Icon: LifeBuoy },
-  { to: "/dashboard/admin/ajuda",   label: "Ajuda",              Icon: HelpCircle },
+  { to: "/dashboard/admin",            label: "Dashboard",          Icon: LayoutDashboard, end: true },
+  { to: "/dashboard/admin/logs",       label: "Usuários",           Icon: Activity },
+  { to: "/dashboard/admin/access-map", label: "Mapa de Acessos",    Icon: Globe },
+  { to: "/dashboard/admin/tickets",    label: "Suporte",            Icon: LifeBuoy },
+  { to: "/dashboard/admin/ajuda",      label: "Ajuda",              Icon: HelpCircle },
 ];
 
 const AdminLayout: React.FC = () => {
@@ -172,11 +175,12 @@ const AdminLayout: React.FC = () => {
         {/* Page content */}
         <main className="flex-1 overflow-y-auto p-6">
           <Routes>
-            <Route path="/"        element={<AdminDashboard />} />
-            <Route path="/logs"    element={<AdminUserLogs />} />
-            <Route path="/tickets" element={<AdminSuporteTickets />} />
-            <Route path="/ajuda"   element={<AdminAjuda />} />
-            <Route path="*"        element={<Navigate to="/dashboard/admin" replace />} />
+            <Route path="/"           element={<AdminDashboard />} />
+            <Route path="/logs"       element={<AdminUserLogs />} />
+            <Route path="/access-map" element={<AccessMapDashboard />} />
+            <Route path="/tickets"    element={<AdminSuporteTickets />} />
+            <Route path="/ajuda"      element={<AdminAjuda />} />
+            <Route path="*"           element={<Navigate to="/dashboard/admin" replace />} />
           </Routes>
         </main>
       </div>
