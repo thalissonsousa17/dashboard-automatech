@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, Suspense, lazy } from "react";
 import { NavLink, Routes, Route, Navigate } from "react-router-dom";
 import {
   Shield,
@@ -18,7 +18,7 @@ import AdminDashboard from "../../pages/AdminDashboard";
 import AdminUserLogs from "../../pages/AdminUserLogs";
 import AdminSuporteTickets from "../../pages/AdminSuporteTickets";
 import AdminAjuda from "../../pages/AdminAjuda";
-import AccessMapDashboard from "../../pages/AccessMapDashboard";
+const AccessMapDashboard = lazy(() => import("../../pages/AccessMapDashboard"));
 
 const NAV_ITEMS = [
   { to: "/dashboard/admin",            label: "Dashboard",          Icon: LayoutDashboard, end: true },
@@ -177,7 +177,11 @@ const AdminLayout: React.FC = () => {
           <Routes>
             <Route path="/"           element={<AdminDashboard />} />
             <Route path="/logs"       element={<AdminUserLogs />} />
-            <Route path="/access-map" element={<AccessMapDashboard />} />
+            <Route path="/access-map" element={
+              <Suspense fallback={<div className="flex justify-center py-20"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-amber-500" /></div>}>
+                <AccessMapDashboard />
+              </Suspense>
+            } />
             <Route path="/tickets"    element={<AdminSuporteTickets />} />
             <Route path="/ajuda"      element={<AdminAjuda />} />
             <Route path="*"           element={<Navigate to="/dashboard/admin" replace />} />
