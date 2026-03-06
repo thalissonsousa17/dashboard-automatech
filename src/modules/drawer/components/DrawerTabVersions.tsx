@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FileDown, Layers, Upload, FileText, Loader2 } from 'lucide-react';
+import { FileDown, Layers, Upload, FileText, Loader2, X, AlertTriangle, CheckCircle } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import { extractPdfTextPreserveLines } from '../../../lib/pdfExtract';
 import {
@@ -23,6 +23,36 @@ interface DrawerTabVersionsProps {
   questions: ExamQuestion[];
 }
 
+// ── Mini Modal ────────────────────────────────────────────────────────────────
+interface ModalState {
+  message: string;
+  type: 'error' | 'info';
+}
+
+function InlineModal({ modal, onClose }: { modal: ModalState; onClose: () => void }) {
+  const isError = modal.type === 'error';
+  return (
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40">
+      <div className="bg-white rounded-xl shadow-2xl w-80 p-5 flex flex-col gap-3">
+        <div className="flex items-start gap-3">
+          {isError
+            ? <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+            : <CheckCircle className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />}
+          <p className="text-sm text-gray-700 leading-snug">{modal.message}</p>
+        </div>
+        <button
+          onClick={onClose}
+          className="self-end px-4 py-1.5 text-xs font-semibold rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700"
+        >
+          OK
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 const DrawerTabVersions: React.FC<DrawerTabVersionsProps> = ({
   examId,
   exam,
@@ -31,12 +61,16 @@ const DrawerTabVersions: React.FC<DrawerTabVersionsProps> = ({
   const [versions, setVersions] = useState<ExamVersion[]>([]);
   const [loading, setLoading] = useState(true);
   const [exportingId, setExportingId] = useState<string | null>(null);
+  const [modal, setModal] = useState<ModalState | null>(null);
 
   // Template de prova
   const [templateFile, setTemplateFile] = useState<File | null>(null);
   const [templateText, setTemplateText] = useState<string | null>(null);
   const [extractingTemplate, setExtractingTemplate] = useState(false);
   const templateInputRef = useRef<HTMLInputElement>(null);
+
+  const showModal = (message: string, type: ModalState['type'] = 'error') =>
+    setModal({ message, type });
 
   useEffect(() => {
     const fetchVersions = async () => {
@@ -65,13 +99,12 @@ const DrawerTabVersions: React.FC<DrawerTabVersionsProps> = ({
     if (!file) return;
     const ext = file.name.split('.').pop()?.toLowerCase();
     if (!['docx', 'doc', 'pdf'].includes(ext || '')) {
-      alert('Formato não suportado. Use DOCX, DOC ou PDF.');
+      showModal('Formato não suportado. Use DOCX, DOC ou PDF.');
       return;
     }
     if (templateInputRef.current) templateInputRef.current.value = '';
 
     if (ext === 'pdf') {
-      // PDF → extrai texto com pdfjs → buildDocxFromText
       setExtractingTemplate(true);
       setTemplateFile(file);
       setTemplateText(null);
@@ -79,14 +112,13 @@ const DrawerTabVersions: React.FC<DrawerTabVersionsProps> = ({
         const text = await extractPdfTextPreserveLines(file);
         setTemplateText(text);
       } catch {
-        alert('Não foi possível extrair o texto do PDF.');
+        showModal('Não foi possível extrair o texto do PDF.');
         setTemplateFile(null);
         setTemplateText(null);
       } finally {
         setExtractingTemplate(false);
       }
     } else if (ext === 'doc') {
-      // .doc binário OLE: extrai texto via Edge Function (formatação não é preservada)
       setExtractingTemplate(true);
       setTemplateFile(file);
       setTemplateText(null);
@@ -106,14 +138,13 @@ const DrawerTabVersions: React.FC<DrawerTabVersionsProps> = ({
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
         console.error('[convert-doc]', err);
-        alert(`Não foi possível ler o arquivo .doc: ${msg}`);
+        showModal(`Não foi possível ler o arquivo .doc:\n${msg}`);
         setTemplateFile(null);
         setTemplateText(null);
       } finally {
         setExtractingTemplate(false);
       }
     } else {
-      // .docx → injeta direto no ZIP na hora do download
       setTemplateFile(file);
       setTemplateText(null);
     }
@@ -207,165 +238,169 @@ const DrawerTabVersions: React.FC<DrawerTabVersionsProps> = ({
   }
 
   return (
-    <div className="space-y-4">
-      {/* ── Modelo de Prova ─────────────────────────────────── */}
-      <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg">
-        <p className="text-xs font-semibold text-purple-700 mb-1">Modelo de Prova (opcional)</p>
-        <p className="text-xs text-purple-500 mb-1">
-          Anexe um modelo para aplicar ao DOCX. Use{' '}
-          <code className="bg-purple-100 px-1 rounded">{'{{QUESTOES}}'}</code> como marcador.
-        </p>
-        <p className="text-xs text-amber-600 mb-2">
-          ⚠️ Para preservar tabelas e estilos, salve seu arquivo como <strong>.docx</strong> antes de anexar. PDF e DOC antigo perdem formatação.
-        </p>
-        <input
-          ref={templateInputRef}
-          type="file"
-          accept=".docx,.doc,.pdf"
-          className="hidden"
-          onChange={handleTemplateChange}
-        />
-        {templateFile ? (
-          <div className="flex items-center justify-between bg-white border border-purple-200 rounded px-2 py-1.5 text-xs text-purple-700">
-            <div className="flex items-center gap-1.5 truncate">
-              {extractingTemplate
-                ? <Loader2 className="w-3.5 h-3.5 flex-shrink-0 animate-spin" />
-                : <FileText className="w-3.5 h-3.5 flex-shrink-0" />}
-              <span className="truncate max-w-[180px]">
-                {extractingTemplate ? 'Lendo PDF...' : templateFile.name}
-              </span>
-            </div>
-            <button
-              onClick={() => { setTemplateFile(null); setTemplateText(null); }}
-              className="ml-2 text-purple-400 hover:text-red-500 font-bold flex-shrink-0"
-            >
-              ✕
-            </button>
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={() => templateInputRef.current?.click()}
-            className="w-full px-2 py-1.5 border border-dashed border-purple-300 rounded text-xs text-purple-600 hover:bg-purple-100 flex items-center justify-center gap-1"
-          >
-            <Upload className="w-3 h-3" />
-            Selecionar modelo (DOCX, DOC ou PDF)
-          </button>
-        )}
-      </div>
+    <>
+      {modal && <InlineModal modal={modal} onClose={() => setModal(null)} />}
 
-      {/* ── Cabeçalho ─────────────────────────────────────── */}
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-gray-500">
-          {versions.length} {versions.length === 1 ? 'versao' : 'versoes'} disponivel(eis)
-        </p>
-        {versions.length > 0 && (
-          <button
-            onClick={handleDownloadAll}
-            disabled={exportingId === 'all'}
-            className="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 disabled:opacity-50 transition-colors"
-          >
-            <Layers className="w-3.5 h-3.5" />
-            <span>{exportingId === 'all' ? 'Gerando...' : 'Baixar Todas (PDF)'}</span>
-          </button>
-        )}
-      </div>
-
-      {/* ── Prova Original ──────────────────────────────────── */}
-      <div className="border border-gray-200 rounded-lg p-3 hover:bg-gray-50">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center space-x-3">
-            <div className="w-9 h-9 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-              <span className="text-xs font-bold text-blue-600">ORI</span>
-            </div>
-            <div>
-              <h4 className="text-sm font-medium text-gray-900">Prova Original</h4>
-              <p className="text-xs text-gray-500">Questões na ordem gerada pela IA</p>
-            </div>
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-1.5 ml-12">
-          <button
-            onClick={handleDownloadOriginalPDF}
-            disabled={exportingId === 'original-pdf'}
-            className="flex items-center space-x-1 px-2.5 py-1.5 text-xs font-medium text-red-700 bg-red-50 rounded-lg hover:bg-red-100 disabled:opacity-50"
-          >
-            <FileDown className="w-3.5 h-3.5" />
-            <span>{exportingId === 'original-pdf' ? 'Gerando...' : 'PDF'}</span>
-          </button>
-          <button
-            onClick={handleDownloadOriginalDOCX}
-            disabled={exportingId === 'original-docx' || extractingTemplate}
-            className="flex items-center space-x-1 px-2.5 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 disabled:opacity-50"
-          >
-            <FileDown className="w-3.5 h-3.5" />
-            <span>{exportingId === 'original-docx' ? 'Gerando...' : templateFile ? 'DOCX (modelo)' : 'DOCX'}</span>
-          </button>
-          <button
-            onClick={handleDownloadOriginalSheet}
-            className="flex items-center space-x-1 px-2.5 py-1.5 text-xs font-medium text-green-700 bg-green-50 rounded-lg hover:bg-green-100"
-          >
-            <FileDown className="w-3.5 h-3.5" />
-            <span>Folha de Respostas</span>
-          </button>
-        </div>
-      </div>
-
-      {/* ── Versões embaralhadas ─────────────────────────────── */}
-      {versions.length === 0 ? (
-        <div className="text-center py-6 text-gray-400">
-          <Layers className="w-10 h-10 mx-auto mb-2 opacity-40" />
-          <p className="text-sm">Nenhuma versão embaralhada gerada.</p>
-          <p className="text-xs mt-1">
-            Finalize a prova no Gerador de Provas IA para criar versões.
+      <div className="space-y-4">
+        {/* ── Modelo de Prova ─────────────────────────────────── */}
+        <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg">
+          <p className="text-xs font-semibold text-purple-700 mb-1">Modelo de Prova (opcional)</p>
+          <p className="text-xs text-purple-500 mb-1">
+            Anexe um modelo para aplicar ao DOCX. Use{' '}
+            <code className="bg-purple-100 px-1 rounded">{'{{QUESTOES}}'}</code> como marcador.
           </p>
+          <p className="text-xs text-amber-600 mb-2">
+            ⚠️ Para preservar tabelas e estilos, salve seu arquivo como <strong>.docx</strong> antes de anexar. PDF e DOC antigo perdem formatação.
+          </p>
+          <input
+            ref={templateInputRef}
+            type="file"
+            accept=".docx,.doc,.pdf"
+            className="hidden"
+            onChange={handleTemplateChange}
+          />
+          {templateFile ? (
+            <div className="flex items-center justify-between bg-white border border-purple-200 rounded px-2 py-1.5 text-xs text-purple-700">
+              <div className="flex items-center gap-1.5 truncate">
+                {extractingTemplate
+                  ? <Loader2 className="w-3.5 h-3.5 flex-shrink-0 animate-spin" />
+                  : <FileText className="w-3.5 h-3.5 flex-shrink-0" />}
+                <span className="truncate max-w-[180px]">
+                  {extractingTemplate ? 'Processando...' : templateFile.name}
+                </span>
+              </div>
+              <button
+                onClick={() => { setTemplateFile(null); setTemplateText(null); }}
+                className="ml-2 text-purple-400 hover:text-red-500 flex-shrink-0"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => templateInputRef.current?.click()}
+              className="w-full px-2 py-1.5 border border-dashed border-purple-300 rounded text-xs text-purple-600 hover:bg-purple-100 flex items-center justify-center gap-1"
+            >
+              <Upload className="w-3 h-3" />
+              Selecionar modelo (DOCX, DOC ou PDF)
+            </button>
+          )}
         </div>
-      ) : (
-        versions.map((version) => (
-          <div
-            key={version.id}
-            className="border border-gray-200 rounded-lg p-3 hover:bg-gray-50"
-          >
-            <div className="flex items-center space-x-3 mb-2">
-              <div className="w-9 h-9 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                <span className="text-sm font-bold text-purple-600">{version.version_label}</span>
+
+        {/* ── Cabeçalho ─────────────────────────────────────── */}
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-gray-500">
+            {versions.length} {versions.length === 1 ? 'versao' : 'versoes'} disponivel(eis)
+          </p>
+          {versions.length > 0 && (
+            <button
+              onClick={handleDownloadAll}
+              disabled={exportingId === 'all'}
+              className="flex items-center space-x-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 disabled:opacity-50 transition-colors"
+            >
+              <Layers className="w-3.5 h-3.5" />
+              <span>{exportingId === 'all' ? 'Gerando...' : 'Baixar Todas (PDF)'}</span>
+            </button>
+          )}
+        </div>
+
+        {/* ── Prova Original ──────────────────────────────────── */}
+        <div className="border border-gray-200 rounded-lg p-3 hover:bg-gray-50">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center space-x-3">
+              <div className="w-9 h-9 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                <span className="text-xs font-bold text-blue-600">ORI</span>
               </div>
               <div>
-                <h4 className="text-sm font-medium text-gray-900">Versão {version.version_label}</h4>
-                <p className="text-xs text-gray-500">
-                  {new Date(version.created_at).toLocaleDateString('pt-BR')}
-                </p>
+                <h4 className="text-sm font-medium text-gray-900">Prova Original</h4>
+                <p className="text-xs text-gray-500">Questões na ordem gerada pela IA</p>
               </div>
             </div>
-            <div className="flex flex-wrap gap-1.5 ml-12">
-              <button
-                onClick={() => handleDownloadVersionPDF(version)}
-                disabled={exportingId === version.id + '-pdf'}
-                className="flex items-center space-x-1 px-2.5 py-1.5 text-xs font-medium text-red-700 bg-red-50 rounded-lg hover:bg-red-100 disabled:opacity-50"
-              >
-                <FileDown className="w-3.5 h-3.5" />
-                <span>{exportingId === version.id + '-pdf' ? 'Gerando...' : 'PDF'}</span>
-              </button>
-              <button
-                onClick={() => handleDownloadVersionDOCX(version)}
-                disabled={exportingId === version.id + '-docx' || extractingTemplate}
-                className="flex items-center space-x-1 px-2.5 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 disabled:opacity-50"
-              >
-                <FileDown className="w-3.5 h-3.5" />
-                <span>{exportingId === version.id + '-docx' ? 'Gerando...' : templateFile ? 'DOCX (modelo)' : 'DOCX'}</span>
-              </button>
-              <button
-                onClick={() => handleDownloadVersionSheet(version)}
-                className="flex items-center space-x-1 px-2.5 py-1.5 text-xs font-medium text-green-700 bg-green-50 rounded-lg hover:bg-green-100"
-              >
-                <FileDown className="w-3.5 h-3.5" />
-                <span>Folha de Respostas</span>
-              </button>
-            </div>
           </div>
-        ))
-      )}
-    </div>
+          <div className="flex flex-wrap gap-1.5 ml-12">
+            <button
+              onClick={handleDownloadOriginalPDF}
+              disabled={exportingId === 'original-pdf'}
+              className="flex items-center space-x-1 px-2.5 py-1.5 text-xs font-medium text-red-700 bg-red-50 rounded-lg hover:bg-red-100 disabled:opacity-50"
+            >
+              <FileDown className="w-3.5 h-3.5" />
+              <span>{exportingId === 'original-pdf' ? 'Gerando...' : 'PDF'}</span>
+            </button>
+            <button
+              onClick={handleDownloadOriginalDOCX}
+              disabled={exportingId === 'original-docx' || extractingTemplate}
+              className="flex items-center space-x-1 px-2.5 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 disabled:opacity-50"
+            >
+              <FileDown className="w-3.5 h-3.5" />
+              <span>{exportingId === 'original-docx' ? 'Gerando...' : templateFile ? 'DOCX (modelo)' : 'DOCX'}</span>
+            </button>
+            <button
+              onClick={handleDownloadOriginalSheet}
+              className="flex items-center space-x-1 px-2.5 py-1.5 text-xs font-medium text-green-700 bg-green-50 rounded-lg hover:bg-green-100"
+            >
+              <FileDown className="w-3.5 h-3.5" />
+              <span>Folha de Respostas</span>
+            </button>
+          </div>
+        </div>
+
+        {/* ── Versões embaralhadas ─────────────────────────────── */}
+        {versions.length === 0 ? (
+          <div className="text-center py-6 text-gray-400">
+            <Layers className="w-10 h-10 mx-auto mb-2 opacity-40" />
+            <p className="text-sm">Nenhuma versão embaralhada gerada.</p>
+            <p className="text-xs mt-1">
+              Finalize a prova no Gerador de Provas IA para criar versões.
+            </p>
+          </div>
+        ) : (
+          versions.map((version) => (
+            <div
+              key={version.id}
+              className="border border-gray-200 rounded-lg p-3 hover:bg-gray-50"
+            >
+              <div className="flex items-center space-x-3 mb-2">
+                <div className="w-9 h-9 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <span className="text-sm font-bold text-purple-600">{version.version_label}</span>
+                </div>
+                <div>
+                  <h4 className="text-sm font-medium text-gray-900">Versão {version.version_label}</h4>
+                  <p className="text-xs text-gray-500">
+                    {new Date(version.created_at).toLocaleDateString('pt-BR')}
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-1.5 ml-12">
+                <button
+                  onClick={() => handleDownloadVersionPDF(version)}
+                  disabled={exportingId === version.id + '-pdf'}
+                  className="flex items-center space-x-1 px-2.5 py-1.5 text-xs font-medium text-red-700 bg-red-50 rounded-lg hover:bg-red-100 disabled:opacity-50"
+                >
+                  <FileDown className="w-3.5 h-3.5" />
+                  <span>{exportingId === version.id + '-pdf' ? 'Gerando...' : 'PDF'}</span>
+                </button>
+                <button
+                  onClick={() => handleDownloadVersionDOCX(version)}
+                  disabled={exportingId === version.id + '-docx' || extractingTemplate}
+                  className="flex items-center space-x-1 px-2.5 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 rounded-lg hover:bg-blue-100 disabled:opacity-50"
+                >
+                  <FileDown className="w-3.5 h-3.5" />
+                  <span>{exportingId === version.id + '-docx' ? 'Gerando...' : templateFile ? 'DOCX (modelo)' : 'DOCX'}</span>
+                </button>
+                <button
+                  onClick={() => handleDownloadVersionSheet(version)}
+                  className="flex items-center space-x-1 px-2.5 py-1.5 text-xs font-medium text-green-700 bg-green-50 rounded-lg hover:bg-green-100"
+                >
+                  <FileDown className="w-3.5 h-3.5" />
+                  <span>Folha de Respostas</span>
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </>
   );
 };
 
