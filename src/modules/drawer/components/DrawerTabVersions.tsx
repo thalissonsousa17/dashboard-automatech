@@ -86,19 +86,27 @@ const DrawerTabVersions: React.FC<DrawerTabVersionsProps> = ({
         setExtractingTemplate(false);
       }
     } else if (ext === 'doc') {
-      // .doc → extrai texto com mammoth na hora do upload → buildDocxFromText
+      // .doc binário OLE → Edge Function (mammoth Node.js) → buildDocxFromText
       setExtractingTemplate(true);
       setTemplateFile(file);
       setTemplateText(null);
       try {
-        const mammoth = await import('mammoth');
-        const arrayBuffer = await file.arrayBuffer();
-        const result = await mammoth.extractRawText({ arrayBuffer });
-        setTemplateText(result.value || '');
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+        const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+        const formData = new FormData();
+        formData.append('file', file);
+        const res = await fetch(`${supabaseUrl}/functions/v1/convert-doc`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${supabaseKey}` },
+          body: formData,
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || 'Falha na conversão');
+        setTemplateText(json.text || '');
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        console.error('[mammoth .doc]', err);
-        alert(`Erro ao ler .doc: ${msg}`);
+        console.error('[convert-doc]', err);
+        alert(`Não foi possível ler o arquivo .doc: ${msg}`);
         setTemplateFile(null);
         setTemplateText(null);
       } finally {
