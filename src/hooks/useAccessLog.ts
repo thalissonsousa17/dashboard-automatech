@@ -55,6 +55,18 @@ function getDeviceInfo() {
   return { userAgent: ua, deviceType, browser, os };
 }
 
+/** Solicita GPS do browser. Retorna null se negado ou sem suporte. */
+async function fetchGpsCoords(): Promise<{ lat: number; lon: number } | null> {
+  if (!('geolocation' in navigator)) return null;
+  return new Promise(resolve => {
+    navigator.geolocation.getCurrentPosition(
+      pos => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
+      () => resolve(null), // negado ou timeout → null (não guarda rejeição, pergunta de novo no próximo login)
+      { timeout: 6000, maximumAge: 0, enableHighAccuracy: false },
+    );
+  });
+}
+
 async function fetchGeoData(): Promise<GeoData | null> {
   // Tentativa 1: ipapi.co (sem chave, funciona em browsers de produção)
   try {
@@ -166,10 +178,16 @@ export function useAccessLog() {
 
   const registerAccess = useCallback(
     async (userId?: string, userEmail?: string, userName?: string) => {
-      const [geoData, deviceInfo] = await Promise.all([
+      // GPS e IP em paralelo — GPS tem prioridade nas coordenadas, IP fornece cidade/país/ISP
+      const [gpsCoords, geoData, deviceInfo] = await Promise.all([
+        fetchGpsCoords(),
         fetchGeoData(),
         Promise.resolve(getDeviceInfo()),
       ]);
+
+      // Usa coordenadas do GPS se disponível, senão cai nas coordenadas do IP
+      const lat = gpsCoords?.lat ?? (geoData?.lat ?? null);
+      const lon = gpsCoords?.lon ?? (geoData?.lon ?? null);
 
       // Gera UUID client-side para evitar .select() após insert
       // (não-admins têm policy INSERT mas não SELECT — o select pós-insert falha com RLS)
@@ -187,9 +205,8 @@ export function useAccessLog() {
           country_code: geoData?.countryCode || null,
           region: geoData?.region || null,
           city: geoData?.city || null,
-          // Usa != null para não tratar 0 como falsy (coordenadas negativas são válidas)
-          latitude: geoData != null && geoData.lat != null ? geoData.lat : null,
-          longitude: geoData != null && geoData.lon != null ? geoData.lon : null,
+          latitude: lat,
+          longitude: lon,
           timezone: geoData?.timezone || null,
           isp: geoData?.isp || null,
           user_agent: deviceInfo.userAgent,
