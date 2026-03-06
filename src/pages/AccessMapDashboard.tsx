@@ -59,6 +59,41 @@ const flagEmoji = (code: string | null) => {
   } catch { return '🌍'; }
 };
 
+// ─── Temas do mapa ───────────────────────────────────────────────────────────
+
+const MAP_THEMES = {
+  dark: {
+    label: 'Escuro',
+    icon: '🌑',
+    tileUrl: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+    bg: '#1a1a2e',
+    attribution: '&copy; CARTO',
+  },
+  light: {
+    label: 'Claro',
+    icon: '☀️',
+    tileUrl: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
+    bg: '#f0ede6',
+    attribution: '&copy; CARTO',
+  },
+  voyager: {
+    label: 'Colorido',
+    icon: '🗺️',
+    tileUrl: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+    bg: '#e8e8e8',
+    attribution: '&copy; CARTO',
+  },
+  satellite: {
+    label: 'Satélite',
+    icon: '🛰️',
+    tileUrl: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    bg: '#1a1a1a',
+    attribution: '&copy; Esri',
+  },
+} as const;
+
+type ThemeKey = keyof typeof MAP_THEMES;
+
 // ─── Mapa Leaflet puro (sem react-leaflet) ───────────────────────────────────
 
 function addMarkersToMap(L: any, map: any, logs: AccessLog[]) {
@@ -96,12 +131,16 @@ function addMarkersToMap(L: any, map: any, logs: AccessLog[]) {
   if (points.length > 0) map.fitBounds(points, { padding: [50, 50] });
 }
 
-const LeafletMap = memo(function LeafletMap({ logs }: { logs: AccessLog[] }) {
+const LeafletMap = memo(function LeafletMap({
+  logs, tileUrl, bgColor, attribution,
+}: { logs: AccessLog[]; tileUrl: string; bgColor: string; attribution: string }) {
   const containerRef = useRef<HTMLDivElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const mapRef = useRef<any>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const leafletRef = useRef<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const tileLayerRef = useRef<any>(null);
   const [mapReady, setMapReady] = useState(false);
 
   // Cria o mapa UMA vez
@@ -115,10 +154,7 @@ const LeafletMap = memo(function LeafletMap({ logs }: { logs: AccessLog[] }) {
       const map = L.map(containerRef.current, { center: [20, 0], zoom: 2 });
       mapRef.current = map;
 
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; CARTO',
-        maxZoom: 18,
-      }).addTo(map);
+      tileLayerRef.current = L.tileLayer(tileUrl, { attribution, maxZoom: 18 }).addTo(map);
 
       setMapReady(true);
     });
@@ -128,9 +164,23 @@ const LeafletMap = memo(function LeafletMap({ logs }: { logs: AccessLog[] }) {
         mapRef.current.remove();
         mapRef.current = null;
         leafletRef.current = null;
+        tileLayerRef.current = null;
       }
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Troca o tile layer quando o tema muda
+  useEffect(() => {
+    const L = leafletRef.current;
+    const map = mapRef.current;
+    if (!mapReady || !map || !L) return;
+
+    if (tileLayerRef.current) {
+      map.removeLayer(tileLayerRef.current);
+    }
+    tileLayerRef.current = L.tileLayer(tileUrl, { attribution, maxZoom: 18 }).addTo(map);
+  }, [tileUrl, attribution, mapReady]);
 
   // Atualiza markers sempre que logs mudam OU o mapa fica pronto
   useEffect(() => {
@@ -141,7 +191,7 @@ const LeafletMap = memo(function LeafletMap({ logs }: { logs: AccessLog[] }) {
   return (
     <>
       <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-      <div ref={containerRef} style={{ height: '100%', width: '100%', background: '#1a1a2e' }} />
+      <div ref={containerRef} style={{ height: '100%', width: '100%', background: bgColor }} />
     </>
   );
 });
@@ -156,6 +206,7 @@ export default function AccessMapDashboard() {
   const [filterStatus, setFilterStatus] = useState<'all' | 'online' | 'offline'>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  const [mapTheme, setMapTheme] = useState<ThemeKey>('dark');
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -300,7 +351,31 @@ export default function AccessMapDashboard() {
         {activeTab === 'map' ? (
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
             <div className="xl:col-span-2 bg-gray-900 rounded-xl overflow-hidden border border-gray-800" style={{ height: 460 }}>
-              <LeafletMap logs={filteredLogs} />
+              {/* Seletor de tema — canto superior direito do mapa */}
+              <div className="relative h-full">
+                <div className="absolute top-2 right-2 z-[1000] flex gap-1 bg-black/60 backdrop-blur-sm rounded-lg p-1">
+                  {(Object.entries(MAP_THEMES) as [ThemeKey, typeof MAP_THEMES[ThemeKey]][]).map(([key, theme]) => (
+                    <button
+                      key={key}
+                      onClick={() => setMapTheme(key)}
+                      title={theme.label}
+                      className={`px-2 py-1 rounded text-xs font-medium transition-all ${
+                        mapTheme === key
+                          ? 'bg-cyan-600 text-white'
+                          : 'text-gray-300 hover:text-white hover:bg-white/10'
+                      }`}
+                    >
+                      {theme.icon} {theme.label}
+                    </button>
+                  ))}
+                </div>
+                <LeafletMap
+                  logs={filteredLogs}
+                  tileUrl={MAP_THEMES[mapTheme].tileUrl}
+                  bgColor={MAP_THEMES[mapTheme].bg}
+                  attribution={MAP_THEMES[mapTheme].attribution}
+                />
+              </div>
             </div>
             <div className="bg-gray-900 rounded-xl border border-gray-800 p-4">
               <h3 className="font-semibold text-gray-200 mb-4 flex items-center gap-2">
