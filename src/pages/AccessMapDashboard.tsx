@@ -76,12 +76,12 @@ const MAP_THEMES = {
     bg: '#f0ede6',
     attribution: '&copy; CARTO',
   },
-  voyager: {
-    label: 'Colorido',
+  osm: {
+    label: 'Padrão',
     icon: '🗺️',
-    tileUrl: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-    bg: '#e8e8e8',
-    attribution: '&copy; CARTO',
+    tileUrl: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    bg: '#f2efe9',
+    attribution: '&copy; OpenStreetMap contributors',
   },
   satellite: {
     label: 'Satélite',
@@ -128,7 +128,7 @@ function addMarkersToMap(L: any, map: any, logs: AccessLog[]) {
     points.push([log.latitude!, log.longitude!]);
   });
 
-  if (points.length > 0) map.fitBounds(points, { padding: [50, 50] });
+  if (points.length > 0) map.fitBounds(points, { padding: [50, 50], maxZoom: 8 });
 }
 
 const LeafletMap = memo(function LeafletMap({
@@ -206,7 +206,7 @@ export default function AccessMapDashboard() {
   const [filterStatus, setFilterStatus] = useState<'all' | 'online' | 'offline'>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
-  const [mapTheme, setMapTheme] = useState<ThemeKey>('dark');
+  const [mapTheme, setMapTheme] = useState<ThemeKey>('osm');
 
   const fetchData = useCallback(async () => {
     setLoading(true);
