@@ -138,7 +138,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   useEffect(() => {
-    // Sessão inicial
+    // Sessão inicial — apenas restaura estado, não registra novo acesso
     supabase.auth
       .getSession()
       .then(({ data: { session } }) => {
@@ -147,11 +147,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         if (currentUser) {
           loadProfile(currentUser.id);
           openSession(currentUser.id);
-          registerAccess(
-            currentUser.id,
-            currentUser.email ?? undefined,
-            currentUser.user_metadata?.display_name ?? undefined,
-          );
+          // Não chama registerAccess aqui — evita duplicatas a cada refresh de página
         }
         setLoading(false);
       })
@@ -168,7 +164,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
       if (event === "SIGNED_IN" && currentUser) {
         loadProfile(currentUser.id);
-        // Só abre nova sessão se não há uma já aberta (evita duplicata com getSession acima)
+        // Só abre nova sessão e registra acesso em login real (não em restore de sessão)
         if (!sessionIdRef.current) {
           openSession(currentUser.id);
           registerAccess(
