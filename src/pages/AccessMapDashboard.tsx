@@ -103,7 +103,7 @@ function addMarkersToMap(L: any, map: any, logs: AccessLog[]) {
   });
 
   const points: [number, number][] = [];
-  logs.filter(l => l.latitude && l.longitude).forEach(log => {
+  logs.filter(l => l.latitude != null && l.longitude != null).forEach(log => {
     const online = log.status === 'online';
     const marker = L.circleMarker([log.latitude!, log.longitude!], {
       radius: online ? 10 : 7,
