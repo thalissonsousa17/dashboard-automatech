@@ -171,9 +171,14 @@ export function useAccessLog() {
         Promise.resolve(getDeviceInfo()),
       ]);
 
-      const { data, error } = await db
+      // Gera UUID client-side para evitar .select() após insert
+      // (não-admins têm policy INSERT mas não SELECT — o select pós-insert falha com RLS)
+      const newLogId = crypto.randomUUID();
+
+      const { error } = await db
         .from('access_logs')
         .insert({
+          id: newLogId,
           user_id: userId || null,
           user_email: userEmail || null,
           user_name: userName || null,
@@ -192,16 +197,14 @@ export function useAccessLog() {
           browser: deviceInfo.browser,
           os: deviceInfo.os,
           status: 'online',
-        })
-        .select('id')
-        .single();
+        });
 
       if (error) {
         console.error('[AccessLog] Erro ao registrar acesso:', error);
         return;
       }
 
-      logIdRef.current = data.id;
+      logIdRef.current = newLogId;
 
       // Heartbeat a cada 2 minutos para manter status online
       heartbeatRef.current = setInterval(async () => {
