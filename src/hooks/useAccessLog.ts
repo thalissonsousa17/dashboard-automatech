@@ -201,7 +201,6 @@ export function useAccessLog() {
 
       if (error) {
         console.error('[AccessLog] Erro ao registrar acesso:', error);
-        alert(`[AccessLog] Erro ao registrar acesso:\n${JSON.stringify(error, null, 2)}`);
         return;
       }
 
