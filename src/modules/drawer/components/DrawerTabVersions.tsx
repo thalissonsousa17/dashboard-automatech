@@ -95,8 +95,10 @@ const DrawerTabVersions: React.FC<DrawerTabVersionsProps> = ({
         const arrayBuffer = await file.arrayBuffer();
         const result = await mammoth.extractRawText({ arrayBuffer });
         setTemplateText(result.value || '');
-      } catch {
-        alert('Não foi possível extrair o texto do arquivo .doc.');
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.error('[mammoth .doc]', err);
+        alert(`Erro ao ler .doc: ${msg}`);
         setTemplateFile(null);
         setTemplateText(null);
       } finally {
