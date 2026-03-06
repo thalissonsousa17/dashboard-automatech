@@ -138,7 +138,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   useEffect(() => {
-    // Sessão inicial — apenas restaura estado, não registra novo acesso
+    // sessionStorage key: registra acesso 1x por aba (sobrevive refresh, limpa ao fechar aba)
+    const accessKey = (uid: string) => `al_${uid}`;
+
     supabase.auth
       .getSession()
       .then(({ data: { session } }) => {
@@ -147,7 +149,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         if (currentUser) {
           loadProfile(currentUser.id);
           openSession(currentUser.id);
-          // Não chama registerAccess aqui — evita duplicatas a cada refresh de página
+          // Registra acesso se ainda não foi registrado nesta aba
+          if (!sessionStorage.getItem(accessKey(currentUser.id))) {
+            sessionStorage.setItem(accessKey(currentUser.id), '1');
+            registerAccess(
+              currentUser.id,
+              currentUser.email ?? undefined,
+              currentUser.user_metadata?.display_name ?? undefined,
+            );
+          }
         }
         setLoading(false);
       })
@@ -164,16 +174,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
       if (event === "SIGNED_IN" && currentUser) {
         loadProfile(currentUser.id);
-        // Só abre nova sessão e registra acesso em login real (não em restore de sessão)
-        if (!sessionIdRef.current) {
+        // Registra acesso se ainda não foi registrado nesta aba (evita duplicata com getSession)
+        if (!sessionStorage.getItem(accessKey(currentUser.id))) {
+          sessionStorage.setItem(accessKey(currentUser.id), '1');
           openSession(currentUser.id);
           registerAccess(
             currentUser.id,
             currentUser.email ?? undefined,
             currentUser.user_metadata?.display_name ?? undefined,
           );
+        } else if (!sessionIdRef.current) {
+          openSession(currentUser.id);
         }
       } else if (event === "SIGNED_OUT") {
+        // Limpa flag para que próximo login seja registrado
+        Object.keys(sessionStorage)
+          .filter(k => k.startsWith('al_'))
+          .forEach(k => sessionStorage.removeItem(k));
         setProfile(null);
         closeSession();
         registerLogout();
