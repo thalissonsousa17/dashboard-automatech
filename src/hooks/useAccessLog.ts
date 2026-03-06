@@ -1,6 +1,9 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = supabase as any;
 
@@ -124,6 +127,18 @@ async function fetchGeoData(): Promise<GeoData | null> {
 export function useAccessLog() {
   const logIdRef = useRef<string | null>(null);
   const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const tokenRef = useRef<string | null>(null);
+
+  // Mantém o access token atualizado para uso no beforeunload (keepalive)
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      tokenRef.current = session?.access_token ?? null;
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
+      tokenRef.current = session?.access_token ?? null;
+    });
+    return () => subscription.unsubscribe();
+  }, []);
 
   const registerAccess = useCallback(
     async (userId?: string, userEmail?: string, userName?: string) => {
@@ -185,16 +200,32 @@ export function useAccessLog() {
     logIdRef.current = null;
   }, []);
 
-  // Marca offline ao fechar a aba
+  // Marca offline ao fechar a aba usando fetch com keepalive (não é cancelado pelo browser)
   useEffect(() => {
     const handleBeforeUnload = () => {
-      if (logIdRef.current) {
-        registerLogout();
+      if (!logIdRef.current || !tokenRef.current || !SUPABASE_URL) return;
+
+      // Limpa heartbeat imediatamente
+      if (heartbeatRef.current) {
+        clearInterval(heartbeatRef.current);
+        heartbeatRef.current = null;
       }
+
+      // keepalive: true garante que o browser complete a requisição mesmo fechando a aba
+      fetch(`${SUPABASE_URL}/rest/v1/rpc/mark_user_offline`, {
+        method: 'POST',
+        keepalive: true,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${tokenRef.current}`,
+          'apikey': SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({ p_log_id: logIdRef.current }),
+      });
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [registerLogout]);
+  }, []);
 
   // Cleanup ao desmontar
   useEffect(() => {

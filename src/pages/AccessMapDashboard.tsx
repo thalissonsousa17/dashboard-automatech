@@ -164,7 +164,20 @@ export default function AccessMapDashboard() {
         db.from('access_logs').select('*').order('logged_in_at', { ascending: false }).limit(500),
         db.from('access_stats_by_country').select('*'),
       ]);
-      if (logsData) setLogs(logsData);
+      if (logsData) {
+        // Se last_seen_at > 5 min atrás e status ainda é 'online', considera offline
+        // (happens quando o browser cancela o beforeunload request)
+        const FIVE_MIN = 5 * 60 * 1000;
+        const now = Date.now();
+        const resolved = logsData.map((log: AccessLog) => ({
+          ...log,
+          status: (
+            log.status === 'online' &&
+            new Date(log.last_seen_at).getTime() < now - FIVE_MIN
+          ) ? 'offline' : log.status,
+        })) as AccessLog[];
+        setLogs(resolved);
+      }
       if (statsData) setCountryStats(statsData);
       setLastRefresh(new Date());
     } finally {
