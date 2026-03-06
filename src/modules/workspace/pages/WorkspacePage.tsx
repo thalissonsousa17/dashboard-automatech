@@ -131,6 +131,10 @@ const WorkspacePage: React.FC = () => {
         // Navigate to destination so the user can see where the exam went
         handleSelectFolder(targetFolderId);
         fetchFolders(workspaceId);
+        // Force refresh when destination equals current location (state doesn't change, useEffect won't fire)
+        if (targetFolderId === selectedFolderId) {
+          loadExams();
+        }
       } else {
         await moveFolder(movingItem.id, targetFolderId);
         fetchFolders(workspaceId);

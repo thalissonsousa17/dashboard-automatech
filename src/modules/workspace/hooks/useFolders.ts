@@ -173,17 +173,24 @@ export const useFolders = () => {
     folderId: string | null,
     workspaceId?: string | null,
   ) => {
+    if (!user) throw new Error('Usuário não autenticado');
+
     const updates: Record<string, unknown> = { folder_id: folderId };
     if (workspaceId !== undefined) {
       updates.workspace_id = workspaceId;
     }
 
-    const { error } = await db
+    const { data, error } = await db
       .from('exams')
       .update(updates)
-      .eq('id', examId);
+      .eq('id', examId)
+      .eq('created_by', user.id)
+      .select('id');
 
     if (error) throw error;
+    if (!data || data.length === 0) {
+      throw new Error('Prova não encontrada ou sem permissão para mover.');
+    }
 
     // Atualiza contagem local imediatamente
     if (folderId) {
