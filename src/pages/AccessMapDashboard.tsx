@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, memo } from 'react';
 import { supabase } from '../lib/supabase';
 import {
   Users, Globe, Clock, Download, RefreshCw,
@@ -12,6 +12,7 @@ const db = supabase as any;
 
 interface AccessLog {
   id: string;
+  user_id: string | null;
   user_email: string | null;
   user_name: string | null;
   ip_address: string;
@@ -60,118 +61,82 @@ const flagEmoji = (code: string | null) => {
 
 // ─── Mapa Leaflet puro (sem react-leaflet) ───────────────────────────────────
 
-function LeafletMap({ logs }: { logs: AccessLog[] }) {
+function addMarkersToMap(L: any, map: any, logs: AccessLog[]) {
+  // Remove markers existentes (CircleMarker têm _latlng mas não são TileLayer)
+  map.eachLayer((layer: any) => {
+    if (layer.options && 'radius' in layer.options) map.removeLayer(layer);
+  });
+
+  const points: [number, number][] = [];
+  logs.filter(l => l.latitude && l.longitude).forEach(log => {
+    const online = log.status === 'online';
+    const marker = L.circleMarker([log.latitude!, log.longitude!], {
+      radius: online ? 10 : 7,
+      color: online ? '#22c55e' : '#ef4444',
+      fillColor: online ? '#4ade80' : '#f87171',
+      fillOpacity: 0.85,
+      weight: 2,
+    });
+    marker.bindPopup(`
+      <div style="min-width:190px;font-size:13px;line-height:1.6;">
+        <b style="font-size:14px;">${flagEmoji(log.country_code)} ${log.city || '—'}, ${log.country || '—'}</b><br/>
+        <b>Usuário:</b> ${log.user_name || log.user_email || 'Anônimo'}<br/>
+        <b>IP:</b> ${log.ip_address}<br/>
+        ${log.browser ? `${log.browser} / ${log.os}` : ''}<br/>
+        <span style="color:${online ? '#16a34a' : '#dc2626'};font-weight:600;">
+          ${online ? '● Online' : '○ Offline'}
+        </span><br/>
+        <span style="color:#9ca3af;font-size:11px;">Login: ${formatDate(log.logged_in_at)}</span>
+      </div>
+    `);
+    marker.addTo(map);
+    points.push([log.latitude!, log.longitude!]);
+  });
+
+  if (points.length > 0) map.fitBounds(points, { padding: [50, 50] });
+}
+
+const LeafletMap = memo(function LeafletMap({ logs }: { logs: AccessLog[] }) {
   const containerRef = useRef<HTMLDivElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const mapRef = useRef<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const leafletRef = useRef<any>(null);
+  const [mapReady, setMapReady] = useState(false);
 
+  // Cria o mapa UMA vez
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (!containerRef.current || mapRef.current) return;
 
-    // Importa Leaflet dinamicamente para evitar problemas de SSR/bundle
     import('leaflet').then(({ default: L }) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (L.Icon.Default.prototype as any)._getIconUrl = undefined;
-      L.Icon.Default.mergeOptions({
-        iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-        iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-        shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-      });
-
-      if (mapRef.current) {
-        mapRef.current.remove();
-        mapRef.current = null;
-      }
-
-      if (!containerRef.current) return;
+      if (mapRef.current || !containerRef.current) return;
+      leafletRef.current = L;
 
       const map = L.map(containerRef.current, { center: [20, 0], zoom: 2 });
       mapRef.current = map;
 
       L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
         attribution: '&copy; CARTO',
+        maxZoom: 18,
       }).addTo(map);
 
-      const points: [number, number][] = [];
-
-      logs.filter(l => l.latitude && l.longitude).forEach(log => {
-        const color = log.status === 'online' ? '#4ade80' : '#f87171';
-        const borderColor = log.status === 'online' ? '#22c55e' : '#ef4444';
-
-        const marker = L.circleMarker([log.latitude!, log.longitude!], {
-          radius: log.status === 'online' ? 9 : 6,
-          color: borderColor,
-          fillColor: color,
-          fillOpacity: 0.8,
-          weight: 2,
-        });
-
-        marker.bindPopup(`
-          <div style="min-width:180px;font-size:13px;">
-            <b style="font-size:14px;">${flagEmoji(log.country_code)} ${log.city || '—'}, ${log.country || '—'}</b><br/>
-            <b>Usuário:</b> ${log.user_name || log.user_email || 'Anônimo'}<br/>
-            <b>IP:</b> ${log.ip_address}<br/>
-            ${log.browser || ''} / ${log.os || ''}<br/>
-            <span style="color:${log.status === 'online' ? '#16a34a' : '#dc2626'};font-weight:600;">
-              ${log.status === 'online' ? '● Online' : '○ Offline'}
-            </span><br/>
-            <span style="color:#9ca3af;font-size:11px;">Login: ${formatDate(log.logged_in_at)}</span>
-          </div>
-        `);
-
-        marker.addTo(map);
-        points.push([log.latitude!, log.longitude!]);
-      });
-
-      if (points.length > 0) {
-        map.fitBounds(points, { padding: [40, 40] });
-      }
+      setMapReady(true);
     });
 
     return () => {
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;
+        leafletRef.current = null;
       }
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Atualiza marcadores quando logs mudam sem recriar o mapa
+  // Atualiza markers sempre que logs mudam OU o mapa fica pronto
   useEffect(() => {
-    if (!mapRef.current) return;
-    const map = mapRef.current;
-
-    // Remove camadas antigas (exceto TileLayer)
-    map.eachLayer((layer: any) => {
-      if (layer._latlng) map.removeLayer(layer);
-    });
-
-    import('leaflet').then(({ default: L }) => {
-      const points: [number, number][] = [];
-      logs.filter(l => l.latitude && l.longitude).forEach(log => {
-        const color = log.status === 'online' ? '#4ade80' : '#f87171';
-        const borderColor = log.status === 'online' ? '#22c55e' : '#ef4444';
-        const marker = L.circleMarker([log.latitude!, log.longitude!], {
-          radius: log.status === 'online' ? 9 : 6,
-          color: borderColor, fillColor: color, fillOpacity: 0.8, weight: 2,
-        });
-        marker.bindPopup(`
-          <div style="min-width:180px;font-size:13px;">
-            <b>${flagEmoji(log.country_code)} ${log.city || '—'}, ${log.country || '—'}</b><br/>
-            <b>Usuário:</b> ${log.user_name || log.user_email || 'Anônimo'}<br/>
-            <b>IP:</b> ${log.ip_address}<br/>
-            <span style="color:${log.status === 'online' ? '#16a34a' : '#dc2626'};font-weight:600;">
-              ${log.status === 'online' ? '● Online' : '○ Offline'}
-            </span>
-          </div>
-        `);
-        marker.addTo(map);
-        points.push([log.latitude!, log.longitude!]);
-      });
-      if (points.length > 0) map.fitBounds(points, { padding: [40, 40] });
-    });
-  }, [logs]);
+    if (!mapReady || !mapRef.current || !leafletRef.current) return;
+    addMarkersToMap(leafletRef.current, mapRef.current, logs);
+  }, [logs, mapReady]);
 
   return (
     <>
@@ -179,7 +144,7 @@ function LeafletMap({ logs }: { logs: AccessLog[] }) {
       <div ref={containerRef} style={{ height: '100%', width: '100%', background: '#1a1a2e' }} />
     </>
   );
-}
+});
 
 // ─── Componente Principal ─────────────────────────────────────────────────────
 
@@ -229,9 +194,20 @@ export default function AccessMapDashboard() {
     return matchStatus && matchSearch;
   });
 
-  const onlineCount = logs.filter(l => l.status === 'online').length;
+  // Usuários únicos online = contas distintas com status 'online'
+  const onlineUserIds = new Set(
+    logs.filter(l => l.status === 'online' && l.user_id).map(l => l.user_id)
+  );
+  const onlineCount = onlineUserIds.size;
+
   const uniqueCountries = new Set(logs.map(l => l.country).filter(Boolean)).size;
-  const last24h = logs.filter(l => new Date(l.logged_in_at) > new Date(Date.now() - 86_400_000)).length;
+  // Últimas 24h: logins únicos por user_id nas últimas 24h
+  const last24hIds = new Set(
+    logs
+      .filter(l => l.user_id && new Date(l.logged_in_at) > new Date(Date.now() - 86_400_000))
+      .map(l => l.user_id)
+  );
+  const last24h = last24hIds.size;
 
   const exportCSV = () => {
     const headers = ['ID', 'Usuário', 'Email', 'IP', 'País', 'Cidade', 'Dispositivo', 'Browser', 'OS', 'Status', 'Login', 'Logout'];
@@ -274,9 +250,9 @@ export default function AccessMapDashboard() {
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
           <StatCard icon={<Wifi className="text-green-400" size={18} />} label="Online agora" value={onlineCount} color="green" />
-          <StatCard icon={<Users className="text-cyan-400" size={18} />} label="Total acessos" value={logs.length} color="cyan" />
+          <StatCard icon={<Users className="text-cyan-400" size={18} />} label="Total de logins" value={logs.length} color="cyan" />
           <StatCard icon={<Globe className="text-purple-400" size={18} />} label="Países" value={uniqueCountries} color="purple" />
-          <StatCard icon={<Clock className="text-yellow-400" size={18} />} label="Últimas 24h" value={last24h} color="yellow" />
+          <StatCard icon={<Clock className="text-yellow-400" size={18} />} label="Únicas 24h" value={last24h} color="yellow" />
         </div>
 
         {/* Tabs */}

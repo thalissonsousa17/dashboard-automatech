@@ -53,6 +53,50 @@ function getDeviceInfo() {
 }
 
 async function fetchGeoData(): Promise<GeoData | null> {
+  // Tentativa 1: ipapi.co (sem chave, funciona em browsers de produção)
+  try {
+    const res = await fetch('https://ipapi.co/json/');
+    if (res.ok) {
+      const data = await res.json();
+      if (data.ip && !data.error) {
+        return {
+          ip: data.ip,
+          country: data.country_name || data.country,
+          countryCode: data.country,
+          region: data.region || '',
+          city: data.city || '',
+          lat: data.latitude,
+          lon: data.longitude,
+          timezone: data.timezone || '',
+          isp: data.org || '',
+        };
+      }
+    }
+  } catch { /* continua para fallback */ }
+
+  // Tentativa 2: ipinfo.io (sem chave, 50k req/mês)
+  try {
+    const res = await fetch('https://ipinfo.io/json');
+    if (res.ok) {
+      const data = await res.json();
+      if (data.ip) {
+        const [lat, lon] = (data.loc || '0,0').split(',').map(Number);
+        return {
+          ip: data.ip,
+          country: data.country,
+          countryCode: data.country,
+          region: data.region || '',
+          city: data.city || '',
+          lat,
+          lon,
+          timezone: data.timezone || '',
+          isp: data.org || '',
+        };
+      }
+    }
+  } catch { /* continua para fallback */ }
+
+  // Tentativa 3: ip-api.com (fallback, tem rate-limit)
   try {
     const res = await fetch(
       'https://ip-api.com/json/?fields=status,country,countryCode,region,city,lat,lon,timezone,isp,query',
@@ -71,11 +115,10 @@ async function fetchGeoData(): Promise<GeoData | null> {
         isp: data.isp,
       };
     }
-    return null;
-  } catch {
-    console.warn('[AccessLog] Falha ao buscar geolocalização');
-    return null;
-  }
+  } catch { /* desiste */ }
+
+  console.warn('[AccessLog] Falha ao buscar geolocalização em todos os providers');
+  return null;
 }
 
 export function useAccessLog() {
