@@ -104,25 +104,36 @@ function addMarkersToMap(L: any, map: any, logs: AccessLog[]) {
 
   const points: [number, number][] = [];
 
+  // Mantém apenas o acesso mais recente por usuário (ou por IP para anônimos)
+  // O mapa mostra posição atual, não histórico — histórico fica na aba Histórico
+  const latestByUser = new Map<string, AccessLog>();
+  logs.forEach(l => {
+    const key = l.user_id || l.ip_address;
+    const existing = latestByUser.get(key);
+    if (!existing || new Date(l.logged_in_at) > new Date(existing.logged_in_at)) {
+      latestByUser.set(key, l);
+    }
+  });
+
   // Agrupa por coordenada para calcular offset em espiral (evita sobreposição)
-  const filteredLogs = logs.filter(l => l.latitude != null && l.longitude != null);
+  const dedupedLogs = [...latestByUser.values()].filter(l => l.latitude != null && l.longitude != null);
   const coordKey = (lat: number, lon: number) => `${lat.toFixed(4)},${lon.toFixed(4)}`;
   const coordCount = new Map<string, number>();
   const coordIdx = new Map<string, number>();
-  filteredLogs.forEach(l => {
+  dedupedLogs.forEach(l => {
     const k = coordKey(l.latitude!, l.longitude!);
     coordCount.set(k, (coordCount.get(k) || 0) + 1);
   });
 
-  filteredLogs.forEach(log => {
+  dedupedLogs.forEach(log => {
     const k = coordKey(log.latitude!, log.longitude!);
     const total = coordCount.get(k) || 1;
     const idx = coordIdx.get(k) || 0;
     coordIdx.set(k, idx + 1);
 
-    // Offset em espiral para markers no mesmo ponto
+    // Offset pequeno em espiral só quando há múltiplos usuários no mesmo ponto
     const angle = total > 1 ? (idx / total) * 2 * Math.PI : 0;
-    const dist = total > 1 ? 0.018 : 0;
+    const dist = total > 1 ? 0.008 : 0;
     const lat = log.latitude! + dist * Math.cos(angle);
     const lon = log.longitude! + dist * Math.sin(angle);
 
