@@ -151,13 +151,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           loadProfile(currentUser.id);
           openSession(currentUser.id);
           // Registra acesso se ainda não foi registrado nesta aba
+          // A chave só é setada APÓS o insert bem-sucedido (evita travamento por GPS)
           if (!sessionStorage.getItem(accessKey(currentUser.id))) {
-            sessionStorage.setItem(accessKey(currentUser.id), '1');
             registerAccess(
               currentUser.id,
               currentUser.email ?? undefined,
               currentUser.user_metadata?.display_name ?? undefined,
-            );
+            ).then(ok => {
+              if (ok) sessionStorage.setItem(accessKey(currentUser.id), '1');
+            });
           }
         }
         setLoading(false);
@@ -177,13 +179,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         loadProfile(currentUser.id);
         // Registra acesso se ainda não foi registrado nesta aba (evita duplicata com getSession)
         if (!sessionStorage.getItem(accessKey(currentUser.id))) {
-          sessionStorage.setItem(accessKey(currentUser.id), '1');
           openSession(currentUser.id);
           registerAccess(
             currentUser.id,
             currentUser.email ?? undefined,
             currentUser.user_metadata?.display_name ?? undefined,
-          );
+          ).then(ok => {
+            if (ok) sessionStorage.setItem(accessKey(currentUser.id), '1');
+          });
         } else if (!sessionIdRef.current) {
           openSession(currentUser.id);
         }

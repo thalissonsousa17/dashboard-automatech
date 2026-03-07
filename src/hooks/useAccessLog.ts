@@ -203,11 +203,19 @@ export function useAccessLog() {
     gpsResolverRef.current = null;
   }, []);
 
-  /** Mostra o modal customizado e aguarda decisão. */
+  /** Mostra o modal customizado e aguarda decisão (auto-false após 30s para evitar hanging). */
   const askGpsViaModal = useCallback((): Promise<boolean> => {
     return new Promise(resolve => {
       gpsResolverRef.current = resolve;
       setGpsModalOpen(true);
+      // Safety: se ninguém clicar em 30s, cancela e usa IP
+      setTimeout(() => {
+        if (gpsResolverRef.current === resolve) {
+          gpsResolverRef.current = null;
+          setGpsModalOpen(false);
+          resolve(false);
+        }
+      }, 30_000);
     });
   }, []);
 
@@ -223,7 +231,7 @@ export function useAccessLog() {
   }, []);
 
   const registerAccess = useCallback(
-    async (userId?: string, userEmail?: string, userName?: string) => {
+    async (userId?: string, userEmail?: string, userName?: string): Promise<boolean> => {
       // ── Decide se usa GPS ──────────────────────────────────────────────────
       let tryGps = false;
       if (gpsIsGranted()) {
@@ -274,7 +282,7 @@ export function useAccessLog() {
 
       if (error) {
         console.error('[AccessLog] Erro ao registrar acesso:', error);
-        return;
+        return false;
       }
 
       logIdRef.current = newLogId;
@@ -285,6 +293,8 @@ export function useAccessLog() {
           await db.rpc('update_last_seen', { p_log_id: logIdRef.current });
         }
       }, 2 * 60 * 1000);
+
+      return true;
     },
     [],
   );
