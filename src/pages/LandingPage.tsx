@@ -167,6 +167,7 @@ const colorMap: Record<string, { bg: string; icon: string; badge: string; border
 const AutomatechLandingPage: React.FC = () => {
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
   // Initialize scroll reveal
   useScrollReveal();
@@ -228,17 +229,17 @@ const AutomatechLandingPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Nav */}
+            {/* Nav desktop */}
             <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-white/60">
-              <button 
-                onClick={() => scrollTo("features")} 
+              <button
+                onClick={() => scrollTo("features")}
                 className="hover:text-white transition-colors relative group"
               >
                 Funcionalidades
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-500 transition-all group-hover:w-full"></span>
               </button>
-              <button 
-                onClick={() => scrollTo("pricing")} 
+              <button
+                onClick={() => scrollTo("pricing")}
                 className="hover:text-white transition-colors relative group"
               >
                 Preços
@@ -246,8 +247,8 @@ const AutomatechLandingPage: React.FC = () => {
               </button>
             </nav>
 
-            {/* CTA */}
-            <div className="flex items-center gap-4">
+            {/* CTA desktop + botão hamburger mobile */}
+            <div className="flex items-center gap-3">
               <button
                 onClick={() => window.open("/login", "_self")}
                 className="hidden sm:block text-sm font-medium text-white/70 hover:text-white transition-colors px-4 py-2"
@@ -256,7 +257,7 @@ const AutomatechLandingPage: React.FC = () => {
               </button>
               <button
                 onClick={() => scrollTo("pricing")}
-                className="relative overflow-hidden bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold px-6 py-2.5 rounded-full transition-all hover:shadow-[0_0_20px_rgba(37,99,235,0.5)] group"
+                className="hidden sm:flex relative overflow-hidden bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold px-6 py-2.5 rounded-full transition-all hover:shadow-[0_0_20px_rgba(37,99,235,0.5)] group items-center gap-2"
               >
                 <span className="relative z-10 flex items-center gap-2">
                   Começar agora
@@ -264,8 +265,51 @@ const AutomatechLandingPage: React.FC = () => {
                 </span>
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
               </button>
+
+              {/* Hamburger — só mobile */}
+              <button
+                className="sm:hidden flex flex-col justify-center items-center w-10 h-10 gap-1.5 rounded-lg hover:bg-white/10 transition-colors"
+                onClick={() => setMobileMenuOpen(o => !o)}
+                aria-label="Menu"
+              >
+                <span className={`block w-5 h-0.5 bg-white transition-all duration-300 ${mobileMenuOpen ? 'rotate-45 translate-y-2' : ''}`} />
+                <span className={`block w-5 h-0.5 bg-white transition-all duration-300 ${mobileMenuOpen ? 'opacity-0' : ''}`} />
+                <span className={`block w-5 h-0.5 bg-white transition-all duration-300 ${mobileMenuOpen ? '-rotate-45 -translate-y-2' : ''}`} />
+              </button>
             </div>
           </div>
+        </div>
+
+        {/* Menu mobile dropdown */}
+        <div className={`sm:hidden overflow-hidden transition-all duration-300 ${mobileMenuOpen ? 'max-h-72 border-t border-white/10' : 'max-h-0'}`}>
+          <nav className="flex flex-col px-4 py-4 gap-1 bg-slate-950/95 backdrop-blur-xl">
+            <button
+              onClick={() => { scrollTo("features"); setMobileMenuOpen(false); }}
+              className="text-left px-4 py-3 text-sm font-medium text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+            >
+              Funcionalidades
+            </button>
+            <button
+              onClick={() => { scrollTo("pricing"); setMobileMenuOpen(false); }}
+              className="text-left px-4 py-3 text-sm font-medium text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+            >
+              Preços
+            </button>
+            <div className="border-t border-white/10 my-2" />
+            <button
+              onClick={() => window.open("/login", "_self")}
+              className="text-left px-4 py-3 text-sm font-medium text-white/70 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
+            >
+              Entrar
+            </button>
+            <button
+              onClick={() => { scrollTo("pricing"); setMobileMenuOpen(false); }}
+              className="mx-0 mt-1 bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold px-4 py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
+            >
+              Começar agora
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </nav>
         </div>
       </header>
 
