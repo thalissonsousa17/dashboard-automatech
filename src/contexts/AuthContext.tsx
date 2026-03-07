@@ -140,7 +140,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   useEffect(() => {
     // sessionStorage key: registra acesso 1x por aba (sobrevive refresh, limpa ao fechar aba)
-    const accessKey = (uid: string) => `al_${uid}`;
+    // v2: prefixo alv2_ invalida keys al_ da versão anterior (que eram setadas antes do INSERT)
+    const accessKey = (uid: string) => `alv2_${uid}`;
 
     supabase.auth
       .getSession()
@@ -193,7 +194,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       } else if (event === "SIGNED_OUT") {
         // Limpa flag para que próximo login seja registrado
         Object.keys(sessionStorage)
-          .filter(k => k.startsWith('al_'))
+          .filter(k => k.startsWith('al_') || k.startsWith('alv2_'))
           .forEach(k => sessionStorage.removeItem(k));
         setProfile(null);
         closeSession();
