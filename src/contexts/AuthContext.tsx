@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { User } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase";
 import { useAccessLog } from "../hooks/useAccessLog";
+import GpsPermissionModal from "../components/GpsPermissionModal";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = supabase as any;
@@ -53,7 +54,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  const { registerAccess, registerLogout } = useAccessLog();
+  const { registerAccess, registerLogout, gpsModalOpen, handleGpsModalResult } = useAccessLog();
 
   // Controle de sessão de uso
   const sessionIdRef = useRef<string | null>(null);
@@ -261,5 +262,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     refreshProfile,
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+      {gpsModalOpen && <GpsPermissionModal onDecision={handleGpsModalResult} />}
+    </AuthContext.Provider>
+  );
 };

@@ -1,8 +1,19 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import { supabase } from '../lib/supabase';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+
+// ─── GPS localStorage keys ────────────────────────────────────────────────────
+const GPS_GRANTED_KEY  = 'gps_granted';   // '1' quando o user já aceitou
+const GPS_BLOCKED_KEY  = 'gps_blocked_at'; // timestamp (ms) quando bloqueou permanentemente
+const MONTH_MS = 30 * 24 * 60 * 60 * 1000;
+
+function gpsIsGranted()  { return !!localStorage.getItem(GPS_GRANTED_KEY); }
+function gpsIsBlocked()  {
+  const t = localStorage.getItem(GPS_BLOCKED_KEY);
+  return !!t && Date.now() - parseInt(t) < MONTH_MS;
+}
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = supabase as any;
@@ -55,13 +66,25 @@ function getDeviceInfo() {
   return { userAgent: ua, deviceType, browser, os };
 }
 
-/** Solicita GPS do browser. Retorna null se negado ou sem suporte. */
+/** Solicita GPS do browser e persiste o resultado no localStorage. */
 async function fetchGpsCoords(): Promise<{ lat: number; lon: number } | null> {
   if (!('geolocation' in navigator)) return null;
   return new Promise(resolve => {
     navigator.geolocation.getCurrentPosition(
-      pos => resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude }),
-      () => resolve(null), // negado ou timeout → null (não guarda rejeição, pergunta de novo no próximo login)
+      pos => {
+        localStorage.setItem(GPS_GRANTED_KEY, '1');
+        localStorage.removeItem(GPS_BLOCKED_KEY);
+        resolve({ lat: pos.coords.latitude, lon: pos.coords.longitude });
+      },
+      err => {
+        if (err.code === 1 /* PERMISSION_DENIED */) {
+          // Bloqueio permanente → grava timestamp; reperguntar após 30 dias
+          localStorage.removeItem(GPS_GRANTED_KEY);
+          localStorage.setItem(GPS_BLOCKED_KEY, String(Date.now()));
+        }
+        // código 2 (indisponível) ou 3 (timeout) → sem grava, tenta de novo no próximo login
+        resolve(null);
+      },
       { timeout: 6000, maximumAge: 0, enableHighAccuracy: false },
     );
   });
@@ -165,6 +188,25 @@ export function useAccessLog() {
   const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const tokenRef = useRef<string | null>(null);
 
+  // ─── Modal GPS ──────────────────────────────────────────────────────────────
+  const [gpsModalOpen, setGpsModalOpen] = useState(false);
+  const gpsResolverRef = useRef<((allowed: boolean) => void) | null>(null);
+
+  /** Chamado pelo modal quando o user clica em "Permitir" ou "Agora não". */
+  const handleGpsModalResult = useCallback((allowed: boolean) => {
+    setGpsModalOpen(false);
+    gpsResolverRef.current?.(allowed);
+    gpsResolverRef.current = null;
+  }, []);
+
+  /** Mostra o modal customizado e aguarda decisão. */
+  const askGpsViaModal = useCallback((): Promise<boolean> => {
+    return new Promise(resolve => {
+      gpsResolverRef.current = resolve;
+      setGpsModalOpen(true);
+    });
+  }, []);
+
   // Mantém o access token atualizado para uso no beforeunload (keepalive)
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -178,9 +220,19 @@ export function useAccessLog() {
 
   const registerAccess = useCallback(
     async (userId?: string, userEmail?: string, userName?: string) => {
+      // ── Decide se usa GPS ──────────────────────────────────────────────────
+      let tryGps = false;
+      if (gpsIsGranted()) {
+        tryGps = true; // já aceitou antes → usa direto, sem modal
+      } else if (!gpsIsBlocked()) {
+        // Nunca respondeu, ou negou (sem bloqueio perm.) → mostra modal
+        tryGps = await askGpsViaModal();
+      }
+      // gpsIsBlocked() → dentro do mês de bloqueio → pula GPS silenciosamente
+
       // GPS e IP em paralelo — GPS tem prioridade nas coordenadas, IP fornece cidade/país/ISP
       const [gpsCoords, geoData, deviceInfo] = await Promise.all([
-        fetchGpsCoords(),
+        tryGps ? fetchGpsCoords() : Promise.resolve(null),
         fetchGeoData(),
         Promise.resolve(getDeviceInfo()),
       ]);
@@ -279,5 +331,5 @@ export function useAccessLog() {
     };
   }, []);
 
-  return { registerAccess, registerLogout };
+  return { registerAccess, registerLogout, gpsModalOpen, handleGpsModalResult };
 }
