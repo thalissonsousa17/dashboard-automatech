@@ -69,7 +69,8 @@ function getDeviceInfo() {
 /** Solicita GPS do browser e persiste o resultado no localStorage. */
 async function fetchGpsCoords(): Promise<{ lat: number; lon: number } | null> {
   if (!('geolocation' in navigator)) return null;
-  return new Promise(resolve => {
+
+  const gpsPromise = new Promise<{ lat: number; lon: number } | null>(resolve => {
     navigator.geolocation.getCurrentPosition(
       pos => {
         localStorage.setItem(GPS_GRANTED_KEY, '1');
@@ -86,12 +87,17 @@ async function fetchGpsCoords(): Promise<{ lat: number; lon: number } | null> {
         resolve(null);
       },
       {
-        timeout: 20000,        // 20s para cold start de GPS móvel
-        maximumAge: 300000,    // aceita posição cacheada de até 5 min (muito mais rápido)
-        enableHighAccuracy: true, // usa chip GPS real no mobile, não só WiFi/IP
+        timeout: 10000,        // hint para o browser (alguns ignoram)
+        maximumAge: 300000,    // aceita posição cacheada de até 5 min (resposta instantânea)
+        enableHighAccuracy: true,
       },
     );
   });
+
+  // Hard timeout no JS — garante resolução mesmo se o browser ignorar o timeout nativo
+  const hardTimeout = new Promise<null>(resolve => setTimeout(() => resolve(null), 12_000));
+
+  return Promise.race([gpsPromise, hardTimeout]);
 }
 
 async function fetchGeoData(): Promise<GeoData | null> {
