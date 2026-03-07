@@ -85,7 +85,11 @@ async function fetchGpsCoords(): Promise<{ lat: number; lon: number } | null> {
         // código 2 (indisponível) ou 3 (timeout) → sem grava, tenta de novo no próximo login
         resolve(null);
       },
-      { timeout: 6000, maximumAge: 0, enableHighAccuracy: false },
+      {
+        timeout: 20000,        // 20s para cold start de GPS móvel
+        maximumAge: 300000,    // aceita posição cacheada de até 5 min (muito mais rápido)
+        enableHighAccuracy: true, // usa chip GPS real no mobile, não só WiFi/IP
+      },
     );
   });
 }
