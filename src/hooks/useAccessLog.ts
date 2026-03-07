@@ -100,10 +100,17 @@ async function fetchGpsCoords(): Promise<{ lat: number; lon: number } | null> {
   return Promise.race([gpsPromise, hardTimeout]);
 }
 
+/** fetch com AbortSignal timeout — evita hanging de rede em mobile */
+function fetchWithTimeout(url: string, ms = 5000): Promise<Response> {
+  const ctrl = new AbortController();
+  const id = setTimeout(() => ctrl.abort(), ms);
+  return fetch(url, { signal: ctrl.signal }).finally(() => clearTimeout(id));
+}
+
 async function fetchGeoData(): Promise<GeoData | null> {
   // Tentativa 1: ipapi.co (sem chave, funciona em browsers de produção)
   try {
-    const res = await fetch('https://ipapi.co/json/');
+    const res = await fetchWithTimeout('https://ipapi.co/json/');
     if (res.ok) {
       const data = await res.json();
       if (data.ip && !data.error) {
@@ -124,7 +131,7 @@ async function fetchGeoData(): Promise<GeoData | null> {
 
   // Tentativa 2: ipinfo.io (sem chave, 50k req/mês)
   try {
-    const res = await fetch('https://ipinfo.io/json');
+    const res = await fetchWithTimeout('https://ipinfo.io/json');
     if (res.ok) {
       const data = await res.json();
       if (data.ip && data.loc) {
@@ -149,7 +156,7 @@ async function fetchGeoData(): Promise<GeoData | null> {
 
   // Tentativa 3: ipwho.is (sem chave, sem rate-limit severo)
   try {
-    const res = await fetch('https://ipwho.is/');
+    const res = await fetchWithTimeout('https://ipwho.is/');
     if (res.ok) {
       const data = await res.json();
       if (data.success && data.ip && data.latitude != null && data.longitude != null) {
@@ -170,7 +177,7 @@ async function fetchGeoData(): Promise<GeoData | null> {
 
   // Tentativa 4: ip-api.com (último recurso, tem rate-limit)
   try {
-    const res = await fetch(
+    const res = await fetchWithTimeout(
       'https://ip-api.com/json/?fields=status,country,countryCode,region,city,lat,lon,timezone,isp,query',
     );
     const data = await res.json();
